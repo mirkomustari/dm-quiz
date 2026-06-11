@@ -264,7 +264,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
   var SKEY = "dmquiz_settings_v1";
   var MIN = 60 * 1000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   var DEFAULTS = { hardMin: 10, goodFirstH: 4, goodNextD: 1, easyD: 1,
-                   examDate: "2026-06-15T14:00" };
+                   batchSize: 10, examDate: "2026-06-15T14:00" };
 
   function loadJSON(k, fallback) {
     try { return JSON.parse(localStorage.getItem(k)) || fallback; }
@@ -428,7 +428,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     },
     settings: function () { return Object.assign({}, settings); },
     setSettings: function (s) {
-      ["hardMin", "goodFirstH", "goodNextD", "easyD"].forEach(function (k) {
+      ["hardMin", "goodFirstH", "goodNextD", "easyD", "batchSize"].forEach(function (k) {
         var v = parseFloat(s[k]);
         if (!isNaN(v) && v > 0) settings[k] = v;
       });
@@ -458,6 +458,21 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
       var box = (state[id] || { box: 0 }).box;
       return { again: "subito", hard: fmt(intervalFor("hard", box)),
                good: fmt(intervalFor("good", box)), easy: fmt(intervalFor("easy", box)) };
+    },
+    batchSize: function () { return Math.max(1, Math.round(settings.batchSize || 10)); },
+    extraBatch: function (topic, n) {
+      // weakest-first: low box, many lapses, earliest due
+      n = n || SR.batchSize();
+      var scored = cards(topic).map(function (q) {
+        var c = state[q.id] || { box: 0, lapses: 0, due: 0 };
+        return { id: q.id, box: c.box || 0, lapses: c.lapses || 0, due: c.due || 0 };
+      });
+      scored.sort(function (a, b) {
+        if (a.box !== b.box) return a.box - b.box;
+        if (a.lapses !== b.lapses) return b.lapses - a.lapses;
+        return a.due - b.due;
+      });
+      return scored.slice(0, n).map(function (x) { return x.id; });
     },
     randomTen: function (topic) {
       var pool = cards(topic).map(function (q) { return q.id; });
@@ -661,8 +676,8 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     home.appendChild(button("btn-primary", "▶ Studia", function () {
       startSession("srs");
     }));
-    home.appendChild(button("btn", "Ripassa 10 a caso", function () {
-      startSession("random10");
+    home.appendChild(button("btn", "➕ Gruppo extra (" + (SR.batchSize ? SR.batchSize() : 10) + " domande, le più deboli)", function () {
+      startSession("batch");
     }));
     home.appendChild(button("btn-secondary", "⚙️ Impostazioni", function () {
       renderSettings();
@@ -675,14 +690,15 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
   function startSession(mode) {
     var kind = mode || "srs";
     var startStats = SR.stats(currentTopic);
-    var queue = kind === "random10" ? SR.randomTen(currentTopic).slice() : [];
+    var queue = kind === "random10" ? SR.randomTen(currentTopic).slice()
+              : kind === "batch" ? SR.extraBatch(currentTopic).slice() : [];
     session = {
       mode: kind,
       queue: queue,
       answered: 0,
-      initial: kind === "random10" ? queue.length : startStats.due + startStats.fresh,
+      initial: (kind === "random10" || kind === "batch") ? queue.length : startStats.due + startStats.fresh,
       remaining: function () {
-        if (this.mode === "random10") return this.queue.length;
+        if (this.mode === "random10" || this.mode === "batch") return this.queue.length;
         var s = SR.stats(currentTopic);
         return s.due + s.fresh;
       }
@@ -692,7 +708,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
 
   function nextQuestion() {
     var id = null;
-    if (session.mode === "random10") id = session.queue.shift() || null;
+    if (session.mode === "random10" || session.mode === "batch") id = session.queue.shift() || null;
     else id = SR.next(currentTopic);
 
     if (!id || !byId[id]) {
@@ -833,7 +849,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     var res = current.result || { grade: "again" };
     session.answered += 1;
 
-    if (res.grade === "again" && session.mode === "random10") {
+    if (res.grade === "again" && (session.mode === "random10" || session.mode === "batch")) {
       session.queue.push(current.id);
     }
 
@@ -860,8 +876,9 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     info.appendChild(el("b", null, s.total));
     card.appendChild(info);
 
-    card.appendChild(button("btn", "Ripassa 10 a caso", function () {
-      startSession("random10");
+    var n = SR.batchSize ? SR.batchSize() : 10;
+    card.appendChild(button("btn-primary", "▶ Continua (altre " + n + ")", function () {
+      startSession("batch");
     }));
     card.appendChild(button("btn", "🏠 Home", function () {
       renderHome();
@@ -902,7 +919,8 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
       ["hardMin", "Difficile (minuti)", "Tempo minimo prima di rivedere una risposta difficile", 1],
       ["goodFirstH", "Bene — primo passaggio (ore)", "Intervallo dopo il primo passaggio corretto", 1],
       ["goodNextD", "Bene — passaggi successivi (giorni)", "Intervallo dopo i passaggi successivi", 1],
-      ["easyD", "Facile (giorni)", "Intervallo per una risposta facile", 1]
+      ["easyD", "Facile (giorni)", "Intervallo per una risposta facile", 1],
+      ["batchSize", "Domande per gruppo extra", "Quante domande per ogni 'Continua' a coda vuota", 1]
     ].forEach(function (field) {
       var row = el("div", "field");
       var label = el("label");
