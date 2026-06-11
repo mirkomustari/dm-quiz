@@ -5,35 +5,230 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#111827">
-<title>DM Quiz — ripasso con ripetizione spaziata</title>
+<title>DM Quiz v2 — ripasso con ripetizione spaziata</title>
 <style>
+/* DM Quiz v2 — design system base (card UI, dark, 3 breakpoints) */
+:root {
+  --bg: #0f1623;
+  --card: #1a2333;
+  --card2: #212d42;
+  --text: #e8edf6;
+  --muted: #93a0b4;
+  --accent: #6c7bff;
+  --accent2: #8b5cf6;
+  --green: #22c55e;
+  --green-bg: rgba(34, 197, 94, 0.14);
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.14);
+  --border: #2c3a52;
+  --radius: 14px;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+#app { max-width: 640px; margin: 0 auto; padding: 0 14px 40px; }
 
+.header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 2px;
+  background: linear-gradient(180deg, var(--bg) 85%, transparent);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.header .hstats { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.progressbar { height: 4px; background: var(--card2); border-radius: 2px;
+  overflow: hidden; margin: -8px 0 14px; }
+.progressbar > div { height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 0.3s; }
+
+.home { display: flex; flex-direction: column; gap: 16px; padding-top: 8vh;
+  text-align: center; }
+.home h1 { margin: 0; font-size: 1.9rem; letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #e8edf6, #b8c2ff, #e8edf6);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 100%;
+  animation: gradientMove 6s ease-in-out infinite; }
+.home .sub { color: var(--muted); margin-top: -8px; }
+.stats { color: var(--muted); font-size: 0.95rem; }
+.stats b { color: var(--text); }
+
+.boxchart { display: flex; gap: 8px; justify-content: center; align-items: flex-end;
+  height: 64px; margin: 4px 0; }
+.boxchart .bar { width: 44px; background: var(--card2); border-radius: 6px 6px 0 0;
+  position: relative; min-height: 4px; }
+.boxchart .bar > i { position: absolute; bottom: -20px; left: 0; right: 0;
+  font-style: normal; font-size: 0.7rem; color: var(--muted); }
+.boxchart .bar.b1 { background: #3b82f6; }
+.boxchart .bar.b2 { background: #8b5cf6; }
+.boxchart .bar.b3 { background: var(--green); }
+
+.btn {
+  display: block; width: 100%;
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 15px 18px; font-size: 1rem; font-weight: 500;
+  cursor: pointer; transition: transform 0.12s, background 0.15s, border-color 0.15s;
+  user-select: none;
+}
+.btn:active { transform: scale(0.985); }
+.btn-primary {
+  display: block; width: 100%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; font-weight: 700; font-size: 1.1rem; color: #fff;
+  box-shadow: 0 10px 28px rgba(108, 123, 255, 0.32), 0 4px 10px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.btn-secondary { background: transparent; color: var(--muted); }
+.btn-icon { width: 44px; height: 44px; padding: 0; display: flex;
+  align-items: center; justify-content: center; font-size: 1.15rem;
+  border-radius: 12px; flex: none; }
+
+.qcard { background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  animation: fadeIn 0.18s ease forwards; }
+.topic { display: inline-block; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 1px; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  padding: 3px 10px; border-radius: 999px; margin-bottom: 10px; }
+.qtext { font-size: 1.12rem; line-height: 1.55; margin: 0; }
+.multinote { color: var(--accent); font-size: 0.85rem; margin-top: 8px; }
+
+.option {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: var(--card); color: var(--text);
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 13px 14px; margin-bottom: 10px; font-size: 0.98rem; line-height: 1.45;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  animation: fadeIn 0.18s ease forwards;
+}
+.option:active { transform: scale(0.99); }
+.option .letter {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card2); color: var(--muted); font-weight: 700; font-size: 0.85rem;
+}
+.option.selected { border-color: var(--accent); background: rgba(108, 123, 255, 0.10); }
+.option.selected .letter { background: var(--accent); color: #fff; }
+.option.correct { border-color: var(--green); background: var(--green-bg); }
+.option.correct .letter { background: var(--green); color: #fff; }
+.option.wrong { border-color: var(--red); background: var(--red-bg); }
+.option.wrong .letter { background: var(--red); color: #fff; }
+
+.option:nth-child(1) { animation-delay: 0.02s; }
+.option:nth-child(2) { animation-delay: 0.05s; }
+.option:nth-child(3) { animation-delay: 0.08s; }
+.option:nth-child(4) { animation-delay: 0.11s; }
+.option:nth-child(5) { animation-delay: 0.14s; }
+
+.verdict { font-size: 1.25rem; font-weight: 700; margin: 12px 0 4px; }
+.verdict.ok { color: var(--green); }
+.verdict.ko { color: var(--red); }
+.note { color: var(--muted); font-size: 0.9rem; font-style: italic; margin: 6px 0 10px; }
+
+.grade-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  margin-top: 12px; }
+.grade-row .btn { padding: 10px 6px; font-size: 0.92rem; }
+.grade-row .btn small { display: block; color: var(--muted); font-weight: 400;
+  font-size: 0.72rem; margin-top: 2px; }
+.grade-row .btn.g-again { border-color: var(--red); }
+.grade-row .btn.g-easy { border-color: var(--green); }
+.kbd-hint { color: var(--muted); font-size: 0.75rem; text-align: center;
+  margin-top: 10px; display: none; }
+kbd { background: var(--card2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 0 5px; font-size: 0.75rem; }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--card2); color: var(--text); border: 1px solid var(--border);
+  padding: 10px 18px; border-radius: 999px; font-size: 0.9rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.25s;
+  pointer-events: none; z-index: 50; }
+.toast.show { opacity: 1; }
+
+.settings { display: flex; flex-direction: column; gap: 14px; }
+.settings h2 { margin: 6px 0 0; }
+.settings .field { display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px; }
+.settings .field label { font-size: 0.95rem; }
+.settings .field small { display: block; color: var(--muted); }
+.settings input[type="number"] { width: 86px; background: var(--card2);
+  color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 1rem; text-align: center; }
+.settings .danger { border-color: rgba(239, 68, 68, 0.5); color: var(--red); }
+
+select { background: var(--card); color: var(--text); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 12px; font-size: 0.95rem; max-width: 100%; }
+.footer { color: var(--muted); font-size: 0.75rem; text-align: center; margin-top: 30px; }
+
+.btn:focus-visible, .option:focus-visible, select:focus-visible, .settings input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gradientMove {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* tablet */
+@media (min-width: 480px) {
+  body { font-size: 17px; }
+  .home { padding-top: 12vh; }
+}
+/* desktop */
+@media (min-width: 900px) {
+  #app { max-width: 720px; }
+  .kbd-hint { display: block; }
+  .option:hover { border-color: var(--accent); background: #25344f; }
+  .btn:hover { border-color: var(--accent); }
+  .btn-primary:hover { filter: brightness(1.08); }
+}
+/* small phones */
+@media (max-width: 380px) {
+  .grade-row { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>window.BANK = [{"id": "m001", "topic": "BI & DWH", "text": "Select the sentences describing a characteristic of a Data Warehouse:", "options": [{"key": "A", "text": "Solves the inconsistencies"}, {"key": "B", "text": "Non volatile"}, {"key": "C", "text": "Includes the time dimension"}, {"key": "D", "text": "Constantly updated as soon as the base data are updated"}, {"key": "E", "text": "Includes all the base data in their native format"}], "correct": ["A", "B", "C"], "note": "", "source": "banco 2026"}, {"id": "m002", "topic": "Preprocessing & dati", "text": "Which is different from the others?", "options": [{"key": "A", "text": "Expectation Maximisation"}, {"key": "B", "text": "Decision Tree"}, {"key": "C", "text": "K-means"}, {"key": "D", "text": "Dbscan"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m003", "topic": "Classificazione & ML", "text": "Which of the following is a base hypothesis for a bayesian classifier?", "options": [{"key": "A", "text": "The attributes must be statistically independent inside each class"}, {"key": "B", "text": "The attributes must have negative correlation"}, {"key": "C", "text": "The attributes must be statistically independent"}, {"key": "D", "text": "The attributes must have zero correlation"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m004", "topic": "Preprocessing & dati", "text": "In data preparation which is the effect of normalisation?", "options": [{"key": "A", "text": "Map all the numeric attributes to the same range, without altering the distribution, in order to avoid that attributes with large ranges have more influence"}, {"key": "B", "text": "Map all the numeric attributes subtracting the respective mean and dividing by variance"}, {"key": "C", "text": "Map all the numeric attributes to the same range and to have a Gaussian distribution"}, {"key": "D", "text": "Map all the numeric attributes in order to have a Gaussian distribution"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m005", "topic": "BI & DWH", "text": "Check the features of Data Lakes in comparison with Data Warehouses:", "options": [{"key": "A", "text": "Can run on less expensive HW/SW"}, {"key": "B", "text": "Do not enforce data quality"}, {"key": "C", "text": "More complex management"}, {"key": "D", "text": "Completely defined use cases"}], "correct": ["A", "B"], "note": "", "source": "banco 2026"}, {"id": "m006", "topic": "Classificazione & ML", "text": "What are the hyperparameters of a Neural Network?", "options": [{"key": "A", "text": "Hidden layers structure, Output layer structure, Activation function, Number of epochs"}, {"key": "B", "text": "Network structure, Learning rate, Backpropagation algorithm, Number of epochs"}, {"key": "C", "text": "Input layers structure, Learning rate, Activation function, Number of epochs"}, {"key": "D", "text": "Hidden layers structure, Learning rate, Activation function, Number of epochs"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m007", "topic": "Preprocessing & dati", "text": "Which operations are in the correct sequence?", "options": [{"key": "A", "text": "Extraction, Cleansing, Transformation, Loading"}, {"key": "B", "text": "Extraction, Transformation, Cleansing, Loading"}, {"key": "C", "text": "Loading, Cleansing, Extraction, Transformation"}, {"key": "D", "text": "Transformation, Extraction, Cleansing, Loading"}, {"key": "E", "text": "Loading, Transformation, Cleansing, Extraction"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m008", "topic": "Clustering", "text": "With reference to the total sum of squared errors (SSE) and separation (SSB) of a clustering scheme, which of the statements below is true?", "options": [{"key": "A", "text": "They are two ways to measure the same thing"}, {"key": "B", "text": "They are strictly correlated, if, changing the clustering scheme, one increases, then the other does the same"}, {"key": "C", "text": "It is possible to optimise them (i.e. minimise SSE and maximise SSB) separately"}, {"key": "D", "text": "They are strictly correlated, if, changing the clustering scheme, one increases, then the other decreases"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m009", "topic": "Regressione", "text": "When is polynomial regression appropriate?", "options": [{"key": "A", "text": "When the relationship between the predicting variable and the target cannot be approximated as linear"}, {"key": "B", "text": "When the target values are not linearly separable"}, {"key": "C", "text": "When there is more than one predicting attribute"}, {"key": "D", "text": "When it is necessary to project the data into a dimensional space"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m010", "topic": "Clustering", "text": "Which of the following is not a strength point of Dbscan with respect to K-means?", "options": [{"key": "A", "text": "The robustness with respect to outliers"}, {"key": "B", "text": "The effectiveness, even in presence of noise"}, {"key": "C", "text": "The effectiveness even if there are clusters with non-convex shape"}, {"key": "D", "text": "The efficiency even in large datasets"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m011", "topic": "Classificazione & ML", "text": "Given the definitions: TP=True Positives; TN=True Negatives; FP=False Positives; FN=False Negatives. Which formula computes the Recall?", "options": [{"key": "A", "text": "TP/(TP+FN)"}, {"key": "B", "text": "TN/(TN+FP)"}, {"key": "C", "text": "TP/(TP+FP)"}, {"key": "D", "text": "(TP+TN)/(TP+FP+TN+FN)"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m012", "topic": "BI & DWH", "text": "Talking about the general idea of database, what is the meaning of \"Schema on read\"?", "options": [{"key": "A", "text": "Write the raw data in the database, then at reading time shape then according to the reader's needs"}, {"key": "B", "text": "Create a schema for data after reading them from the database"}, {"key": "C", "text": "Read the schema of the data before each data read"}, {"key": "D", "text": "Change the schema of the data before each read"}], "correct": ["A", "B"], "note": "", "source": "banco 2026"}, {"id": "m013", "topic": "Regressione", "text": "What is the coefficient of determination R2?", "options": [{"key": "A", "text": "Provide an index of goodness for a linear regression model"}, {"key": "B", "text": "Measure the amount of error in a linear regression model"}, {"key": "C", "text": "Measure the amount of error in a regression model"}, {"key": "D", "text": "An index of goodness for a classification model"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m014", "topic": "Clustering", "text": "Which of the statements below is true about K-Means?", "options": [{"key": "A", "text": "Sometimes k-means stops to a configuration which does not give the minimum distortion for the chosen value of the number of clusters"}, {"key": "B", "text": "K-means always stop to a configuration which gives the minimum distortion for the chosen value of the number of clusters"}, {"key": "C", "text": "K-means works well also with datasets having a very large number of attributes"}, {"key": "D", "text": "K-means finds the number of clusters which give the minimum distortion"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m015", "topic": "BI & DWH", "text": "Check the main objectives pursued when choosing a Data Lake architecture:", "options": [{"key": "A", "text": "Store the data directly from the sources, as they are"}, {"key": "B", "text": "The data must be accurately structured, in order to provide fast answers to complex queries"}, {"key": "C", "text": "The storage must be scalable and cheap, at the expenses of latency"}, {"key": "D", "text": "Ensure high quality of data through an accurate cleaning and transformation step"}], "correct": ["A", "C"], "note": "", "source": "banco 2026"}, {"id": "m016", "topic": "Preprocessing & dati", "text": "Which distance function is best suited for High dimensional spaces?", "options": [{"key": "A", "text": "Euclidean distance"}, {"key": "B", "text": "Cosine distance"}, {"key": "C", "text": "Manhattan distance"}, {"key": "D", "text": "Jaccard coefficient"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m017", "topic": "Classificazione & ML", "text": "When training a neural network, what is the learning rate?", "options": [{"key": "A", "text": "The speed of convergence to a stable solution during the learning process"}, {"key": "B", "text": "The ratio between the size of the hidden layer and the input layer of the network"}, {"key": "C", "text": "The slope of the activation function in a specific node"}, {"key": "D", "text": "A multiplying factor of the correction to be applied to the connection weights"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m018", "topic": "Clustering", "text": "What does K-means try to minimise?", "options": [{"key": "A", "text": "The distortion, that is the sum of the squared distances of each point with respect to the points of the other clusters"}, {"key": "B", "text": "The distortion, that is the sum of the squared distances of each point with respect to its centroid"}, {"key": "C", "text": "The separation, that is the sum of the squared distances of each point with respect to its centroid"}, {"key": "D", "text": "The separation, that is the sum of the squared distances of each cluster centroid with respect to the global centroid of the dataset"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m019", "topic": "Preprocessing & dati", "text": "Which is the effect of the curse of dimensionality?", "options": [{"key": "A", "text": "When the number of dimensions increases the results tend to be prone to overfitting"}, {"key": "B", "text": "When the number of dimensions increases the euclidean distance becomes less effective to discriminate between points"}, {"key": "C", "text": "When the number of dimensions increases the computing power becomes too high"}, {"key": "D", "text": "When the number of dimensions increases the classifiers cannot be correctly tuned"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m020", "topic": "Preprocessing & dati", "text": "Which distance function is best suited for Vectors of terms representing documents?", "options": [{"key": "A", "text": "Euclidean distance"}, {"key": "B", "text": "Cosine distance"}, {"key": "C", "text": "Manhattan distance"}, {"key": "D", "text": "Jaccard coefficient"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m021", "topic": "Association Rules", "text": "Which formula computes the Conviction of a rule (A -> C)?", "options": [{"key": "A", "text": "sup(A U C) - sup(A)sup(C)"}, {"key": "B", "text": "conf(A -> C) / sup(C)"}, {"key": "C", "text": "sup(A -> C) / sup(A)"}, {"key": "D", "text": "(1 - sup(C)) / (1 - conf(A -> C))"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m022", "topic": "Preprocessing & dati", "text": "In a dataset with D attributes, how many subsets of attributes should be considered for feature selection according to an exhaustive search?", "options": [{"key": "A", "text": "O(2^D)"}, {"key": "B", "text": "O(D!)"}, {"key": "C", "text": "O(D)"}, {"key": "D", "text": "O(D^2)"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m023", "topic": "Classificazione & ML", "text": "What is the cross validation?", "options": [{"key": "A", "text": "A technique to obtain a good estimation of the performance of a classifier when it will be used with data different from the training set"}, {"key": "B", "text": "A technique to obtain a good estimation of the performance of a classifier with the training set"}, {"key": "C", "text": "A technique to improve the quality of a classifier"}, {"key": "D", "text": "A technique to improve the speed of a classifier"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m024", "topic": "Preprocessing & dati", "text": "Which preprocessing activity is appropriate when numeric attributes have very diverse ranges of values?", "options": [{"key": "A", "text": "Rescaling"}, {"key": "B", "text": "Non linear transformations"}, {"key": "C", "text": "Aggregation"}, {"key": "D", "text": "OneHot Encoding"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m025", "topic": "Regressione", "text": "What is the difference between classification and regression?", "options": [{"key": "A", "text": "Classification has a categorical target, while regression has a numeric target"}, {"key": "B", "text": "Classification is a supervised activity, while regression in unsupervised"}, {"key": "C", "text": "Classification can make errors, while regression is always exact"}, {"key": "D", "text": "Classification can have a numeric or categorical target, while regression has always a categorical target"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m026", "topic": "Classificazione & ML", "text": "In a decision tree, the number of objects in a node...", "options": [{"key": "A", "text": "... is smaller than the number of objects in its ancestor"}, {"key": "B", "text": "is not related to the number of objects in its ancestor"}, {"key": "C", "text": "... is smaller than or equal to the number of objects in its ancestor"}, {"key": "D", "text": "... is bigger than the number of objects in its ancestor"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m027", "topic": "BI & DWH", "text": "Talking about the general idea of database, what is the purpose of the \"Schema on write\" strategy?", "options": [{"key": "A", "text": "Optimisation for specific types of queries"}, {"key": "B", "text": "Clean design of the data structure"}, {"key": "C", "text": "Avoid preprocessing of data before writing"}, {"key": "D", "text": "Flexibility and efficiency for any kind of query"}], "correct": ["A", "B"], "note": "", "source": "banco 2026"}, {"id": "m028", "topic": "Classificazione & ML", "text": "Why do we prune a decision tree?", "options": [{"key": "A", "text": "To eliminate parts of the tree where the decisions could be influenced by random effects"}, {"key": "B", "text": "To eliminate rows of the dataset which could be influenced by random effects"}, {"key": "C", "text": "To eliminate parts of the tree where the decision could generate underfitting"}, {"key": "D", "text": "To eliminate attributes which could be influenced by random effects"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m029", "topic": "Classificazione & ML", "text": "What is the main purpose of smoothing in Bayesian classification?", "options": [{"key": "A", "text": "Classifying an object containing attribute values which are missing from some classes in the training set"}, {"key": "B", "text": "Dealing with missing values"}, {"key": "C", "text": "Reduce the variability of the data"}, {"key": "D", "text": "Classifying an object containing attribute values which are missing from some classes in the test set"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m030", "topic": "Preprocessing & dati", "text": "Which of the following types of data allows the use of the euclidean distance?", "options": [{"key": "A", "text": "Points in a vector space"}, {"key": "B", "text": "Ordered data"}, {"key": "C", "text": "Transactional data"}, {"key": "D", "text": "Document representations"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m031", "topic": "BI & DWH", "text": "Talking about the general idea of database, what is the meaning of \"Schema on write\"?", "options": [{"key": "A", "text": "Create a schema for data after writing into the database"}, {"key": "B", "text": "Create a schema for data while writing into the database"}, {"key": "C", "text": "Change the schema of the data after each write"}, {"key": "D", "text": "Create a schema for data before writing into the database"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m032", "topic": "Classificazione & ML", "text": "A Decision Tree is...", "options": [{"key": "A", "text": "A tree-structured plan of tests on single attributes to forecast the cluster"}, {"key": "B", "text": "A tree-structured plan of tests on single attributes to forecast the target"}, {"key": "C", "text": "A tree-structured plan of tests on single attributes to obtain the maximum purity of a node"}, {"key": "D", "text": "A tree-structured plan of tests on multiple attributes to forecast the target"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m033", "topic": "Preprocessing & dati", "text": "In order to reduce the dimensionality of a dataset, which is the advantage of Multi Dimensional Scaling (MDS) with respect to PCA?", "options": [{"key": "A", "text": "MDS requires less computational power"}, {"key": "B", "text": "MDS can be used also with categorical data, provided that the matrix of the distance is available, while PCA is limited to vector spaces"}, {"key": "C", "text": "MDS can be used with categorical data after a transformation in a vector space"}, {"key": "D", "text": "MDS can work on any kind of data, while PCA is limited to categorical data"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m034", "topic": "Preprocessing & dati", "text": "Which preprocessing activity is appropriate when a nominal attribute needs to be used as predicting (sklearn)?", "options": [{"key": "A", "text": "Rescaling"}, {"key": "B", "text": "Non linear transformations"}, {"key": "C", "text": "Aggregation"}, {"key": "D", "text": "OneHot Encoding"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m035", "topic": "Preprocessing & dati", "text": "Which of the following statements is true?", "options": [{"key": "A", "text": "The data which are similar to the majority are never noise"}, {"key": "B", "text": "The noise always generate outliers"}, {"key": "C", "text": "Outliers can be due to noise"}, {"key": "D", "text": "The noise can generate outliers"}], "correct": ["C", "D"], "note": "", "source": "banco 2026"}, {"id": "m036", "topic": "BI & DWH", "text": "Which of the definition below describes the OLAP operation \"Drill-Across\"?", "options": [{"key": "A", "text": "Reduces the number of cube dimensions after setting one of the dimensions to a specific value"}, {"key": "B", "text": "Creates a link between concepts in interrelated cubes, in order to compare them"}, {"key": "C", "text": "Reduces data aggregation and adds a detail level to a hierarchy"}, {"key": "D", "text": "Changes the layout, in order to analyse a group of data from a different viewpoint"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m037", "topic": "Clustering", "text": "What is the first step in agglomerative clustering?", "options": [{"key": "A", "text": "Cutting the Dendrogram"}, {"key": "B", "text": "Pairwise Cluster Similarity Calculation"}, {"key": "C", "text": "Initialization: Start with each data point as a singleton cluster"}, {"key": "D", "text": "Cluster Assignment"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m038", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Extraction step?", "options": [{"key": "A", "text": "Elimination of duplicates"}, {"key": "B", "text": "Snapshot of the operational data"}, {"key": "C", "text": "Association of a timestamp to the operational data"}, {"key": "D", "text": "Usage of dictionaries to solve inconsistencies"}], "correct": ["B", "C"], "note": "", "source": "banco 2026"}, {"id": "m039", "topic": "Association Rules", "text": "Consider the transactional dataset: 1 {A,B,C} 2 {A,B,D} 3 {B,D,E} 4 {C,D} 5 {A,C,D,E} Which is the confidence of the rule B -> E?", "options": [{"key": "A", "text": "100%"}, {"key": "B", "text": "50%"}, {"key": "C", "text": "33%"}, {"key": "D", "text": "20%"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m040", "topic": "Preprocessing & dati", "text": "Which preprocessing activity is appropriate when an attribute has a very skewed distribution (long tail)?", "options": [{"key": "A", "text": "Rescaling"}, {"key": "B", "text": "Non linear transformations"}, {"key": "C", "text": "Aggregation"}, {"key": "D", "text": "OneHot Encoding"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m041", "topic": "Association Rules", "text": "Consider the transactional dataset: 1 {A,B,C} 2 {A,B,D} 3 {B,D,E} 4 {C,D} 5 {A,C,D,E} Which is the confidence of the rule A,C -> B?", "options": [{"key": "A", "text": "50%"}, {"key": "B", "text": "40%"}, {"key": "C", "text": "20%"}, {"key": "D", "text": "100%"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m042", "topic": "BI & DWH", "text": "Which of the definition below describes the OLAP operation \"Slice & Dice\"?", "options": [{"key": "A", "text": "Creates a link between concepts in interrelated cubes, in order to compare them"}, {"key": "B", "text": "Reduces the number of cube dimensions after setting one of the dimensions to a specific value"}, {"key": "C", "text": "Causes an increase in data aggregation and removes a detail level in a hierarchy"}, {"key": "D", "text": "Changes the layout, in order to analyse a group of data from a different viewpoint"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m043", "topic": "BI & DWH", "text": "What is the ranking for the following technologies, based on the increasing level of abstraction? Technologies: - OLAP analysis on Data Mart - Data Mining on operational databases - SQL queries on operational databases; Order: from left (it generates the most specific information) to right (it has a higher level of knowledge).", "options": [{"key": "A", "text": "Data Mining, OLAP analysis, SQL queries"}, {"key": "B", "text": "SQL queries, OLAP analysis, Data Mining"}, {"key": "C", "text": "SQL queries, Data Mining, OLAP analysis"}, {"key": "D", "text": "OLAP analysis, SQL queries, Data Mining"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m044", "topic": "Preprocessing & dati", "text": "Which is the main reason for the MinMax scaling (rescaling) of attributes?", "options": [{"key": "A", "text": "Change the distribution of the numeric attributes, in order to obtain gaussian distributions"}, {"key": "B", "text": "Map all the nominal attributes to the same range"}, {"key": "C", "text": "Remove abnormal values"}, {"key": "D", "text": "Map all the numeric attributes to the same range, in order to prevent attributes with higher range from having prevalent influence"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m045", "topic": "Association Rules", "text": "What is the meaning of the statement \"the support is anti-monotone\"?", "options": [{"key": "A", "text": "The support of an itemset never exceeds the support if its subsets"}, {"key": "B", "text": "The support of an itemset is always smaller than the support of its supersets"}, {"key": "C", "text": "The support of an itemsets never exceeds the support if its supersets"}, {"key": "D", "text": "The support of an itemset is always smaller than the support of its subsets"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m046", "topic": "Association Rules", "text": "How does pruning work when generating frequent itemsets?", "options": [{"key": "A", "text": "If an itemset is not frequent, then none of its supersets can be frequent, therefore the frequencies of the supersets are not evaluated"}, {"key": "B", "text": "If an itemset is frequent, then none of its supersets can be frequent, therefore the frequencies of the supersets are not evaluated"}, {"key": "C", "text": "If an itemset is not frequent, then none of its subsets can be frequent, therefore the frequencies of the subsets are not evaluated"}, {"key": "D", "text": "If an itemset is frequent, then none of its subsets can be frequent, therefore the frequencies of the subsets are not evaluated"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m047", "topic": "Association Rules", "text": "Which formula computes the Confidence of a rule (A -> C)?", "options": [{"key": "A", "text": "sup(A U C) - sup(A)sup(C)"}, {"key": "B", "text": "conf(A -> C) / sup(C)"}, {"key": "C", "text": "sup(A -> C) / sup(A)"}, {"key": "D", "text": "(1 - sup(C)) / (1 - conf(A -> C))"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m048", "topic": "Preprocessing & dati", "text": "Given the two binary vectors below, which is their similarity according to the Simple Matching Coefficient? 1000101101 1011101010", "options": [{"key": "A", "text": "0.1"}, {"key": "B", "text": "0.3"}, {"key": "C", "text": "0.5"}, {"key": "D", "text": "0.2"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m049", "topic": "Preprocessing & dati", "text": "In data preprocessing, which of the operations below performs aggregation?", "options": [{"key": "A", "text": "Combination of two attributes in order to obtatn a more general attribute with smaller variability"}, {"key": "B", "text": "Reduction of the number of distinct values of an attribute in order to reduce its variability"}, {"key": "C", "text": "Reduction of the number of rows of the dataset by applying a grouping on one or more attributes and computing the measures as the results of aggregation functions"}, {"key": "D", "text": "Combination of two or more datasets in order to obtatn more Information"}], "correct": ["B", "C"], "note": "", "source": "banco 2026"}, {"id": "m050", "topic": "Clustering", "text": "After fitting DBSCAN with the default parameter values the results are: 0 clusters, 100% of noise points. Which will be your next trial?", "options": [{"key": "A", "text": "Reduce the minimum number of objects in the neighborhood"}, {"key": "B", "text": "Reduce the minimum number of objects in the neighborhood and the radius of the neighborhood"}, {"key": "C", "text": "Increase the radius of the neighborhood"}, {"key": "D", "text": "Decrease the radius of the neighborhood"}], "correct": ["A", "C"], "note": "", "source": "banco 2026"}, {"id": "m051", "topic": "Clustering", "text": "Which of the following clustering methods is not based on distances between objects?", "options": [{"key": "A", "text": "Hierarchical Agglomerative"}, {"key": "B", "text": "DBSCAN"}, {"key": "C", "text": "K-Means"}, {"key": "D", "text": "Expectation Maximization"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m052", "topic": "Association Rules", "text": "Which of the statements below best describes the strategy of Apriori in finding the frequent itemsets?", "options": [{"key": "A", "text": "Evaluation of the support of the itemsets in an order such that uninteresting parts of the search space are considered only at the end"}, {"key": "B", "text": "Evaluation of the confidence of the itemsets in an order such that uninteresting parts of the search space are pruned"}, {"key": "C", "text": "Evaluation of the support of the itemsets in an order such that uninteresting parts of the search space are pruned as soon as possible"}, {"key": "D", "text": "Evaluation of the support of the itemsets in an order such that the interesting parts of the search space are pruned"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m053", "topic": "Preprocessing & dati", "text": "Which is different from the others?", "options": [{"key": "A", "text": "Silhouette Index"}, {"key": "B", "text": "Misclassification Error"}, {"key": "C", "text": "Entropy"}, {"key": "D", "text": "Gini Index"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m054", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Transformation step?", "options": [{"key": "A", "text": "Usage of dictionaries to solve inconsistencies"}, {"key": "B", "text": "Snapshot of the operational data"}, {"key": "C", "text": "Denormalisation"}, {"key": "D", "text": "Calculation of derived data"}], "correct": ["C", "D"], "note": "", "source": "banco 2026"}, {"id": "m055", "topic": "Preprocessing & dati", "text": "Which distance function is best suited for Vector space with real values?", "options": [{"key": "A", "text": "Euclidean distance"}, {"key": "B", "text": "Cosine distance"}, {"key": "C", "text": "Manhattan distance"}, {"key": "D", "text": "Jaccard coefficient"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m056", "topic": "BI & DWH", "text": "Which of the following are typical data warehouse queries?", "options": [{"key": "A", "text": "Which products maximize the profit?"}, {"key": "B", "text": "Which is the stock of product \"XXX\" in the \"YYY\" warehouse?"}, {"key": "C", "text": "What is the total revenue of yesterday in shop \"BO03\"?"}, {"key": "D", "text": "What is the total revenue per product category and state?"}, {"key": "E", "text": "What is the relationship between profits gained by products \"WWW\" and \"ZZZ\"?"}], "correct": ["A", "D", "E"], "note": "", "source": "banco 2026"}, {"id": "m057", "topic": "Classificazione & ML", "text": "When developing a classifier, which of the following is a symptom of overfitting?", "options": [{"key": "A", "text": "The error rate in the test set is much smaller than the error rate in the training set"}, {"key": "B", "text": "The precision is much greater than the recall"}, {"key": "C", "text": "The error rate in the test set is more than 30%"}, {"key": "D", "text": "The error rate in the test set is much greater than the error rate in the training set"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m058", "topic": "Association Rules", "text": "Which formula computes the Leverage of a rule (A -> C)?", "options": [{"key": "A", "text": "sup(A U C) - sup(A)sup(C)"}, {"key": "B", "text": "conf(A -> C) / sup(C)"}, {"key": "C", "text": "sup(A -> C) / sup(A)"}, {"key": "D", "text": "(1 - sup(C)) / (1 - conf(A -> C))"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m059", "topic": "BI & DWH", "text": "In which part of the CRISP methodology we perform the test design activity?", "options": [{"key": "A", "text": "Data Understanding"}, {"key": "B", "text": "Evaluation"}, {"key": "C", "text": "Business Understanding"}, {"key": "D", "text": "Modeling"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m060", "topic": "BI & DWH", "text": "Which of the definition below describes the OLAP operation \"Pivot\"?", "options": [{"key": "A", "text": "Causes an increase in data aggregation and removes a detail level in a hierarchy"}, {"key": "B", "text": "Reduces data aggregation and adds a detail level to a hierarchy"}, {"key": "C", "text": "Changes the layout, in order to analyse a group of data from a different viewpoint"}, {"key": "D", "text": "Creates a link between concepts in interrelated cubes, to compare them"}, {"key": "E", "text": "Reduces the number of cube dimensions after setting one of the dimensions to a specific value"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m061", "topic": "Preprocessing & dati", "text": "Which is the main reason for the standardization of numeric attributes?", "options": [{"key": "A", "text": "Change the distribution of the numeric attributes, in order to obtain gaussian distributions"}, {"key": "B", "text": "Map all the numeric attributes to a new range such that the mean is zero and the variance is one"}, {"key": "C", "text": "Map all the nominal attributes to the same range"}, {"key": "D", "text": "Remove non-standard values"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m062", "topic": "Clustering", "text": "How is the number of clusters determined in agglomerative clustering?", "options": [{"key": "A", "text": "By assigning each data point to a cluster based on the final structure"}, {"key": "B", "text": "By cutting the dendrogram at a certain height"}, {"key": "C", "text": "By merging the closest clusters"}, {"key": "D", "text": "By computing the pairwise similarity"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m063", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Cleansing step?", "options": [{"key": "A", "text": "Elimination of duplicates"}, {"key": "B", "text": "Association of a timestamp to the operational data"}, {"key": "C", "text": "Usage of dictionaries to solve inconsistencies"}, {"key": "D", "text": "Snapshot of the operational data"}], "correct": ["A", "C"], "note": "", "source": "banco 2026"}, {"id": "m064", "topic": "Clustering", "text": "Which of the statements below is true about K-Means?", "options": [{"key": "A", "text": "K-mean always stops to a configuration which gives the minimum distortion for the chosen value of the number of clusters"}, {"key": "B", "text": "K-means is very sensitive to the initial assignment of the centers"}, {"key": "C", "text": "K-means is quite efficient even for large datasets"}, {"key": "D", "text": "Sometimes k-means stops to a configuration which does not give the minimum distortion for the chosen value of the number of clusters"}], "correct": ["B", "C", "D"], "note": "", "source": "banco 2026"}, {"id": "m065", "topic": "Clustering", "text": "Which of the following characteristic of data can reduce the effectiveness of K-Means?", "options": [{"key": "A", "text": "Presence of values with high frequency"}, {"key": "B", "text": "Presence of outliers"}, {"key": "C", "text": "All the variables have the same distribution of values"}, {"key": "D", "text": "All the variables have the same range of values"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m066", "topic": "Classificazione & ML", "text": "Given the definitions: TP=True Positives; TN=True Negatives; FP=False Positives; FN=False Negatives. Which formula computes the Precision?", "options": [{"key": "A", "text": "TP/(TP+FP)"}, {"key": "B", "text": "(TP+TN)/(TP+FP+TN+FN)"}, {"key": "C", "text": "TN/(TN+FP)"}, {"key": "D", "text": "TP/(TP+FN)"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m067", "topic": "Preprocessing & dati", "text": "Which of the following is not an objective of feature selection?", "options": [{"key": "A", "text": "Select the features with higher range, which have more influence on the computation"}, {"key": "B", "text": "Reduce time and memory complexity of the mining algorithms"}, {"key": "C", "text": "Reduce the effect of noise"}, {"key": "D", "text": "Avoid the curse of dimensionality"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m068", "topic": "Association Rules", "text": "Which formula computes the Lift of a rule (A -> C)?", "options": [{"key": "A", "text": "sup(A U C) - sup(A)sup(C)"}, {"key": "B", "text": "conf(A -> C) / sup(C)"}, {"key": "C", "text": "sup(A -> C) / sup(A)"}, {"key": "D", "text": "(1 - sup(C)) / (1 - conf(A -> C))"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m069", "topic": "Clustering", "text": "What measure is maximised by the Expectation Masimisation algorithm for clustering?", "options": [{"key": "A", "text": "The likelihood the distributions, defined by the parameters found, given the data available"}, {"key": "B", "text": "The likelihood of an example"}, {"key": "C", "text": "The support of a class"}, {"key": "D", "text": "The likelihood of an attribute, given the class label"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m070", "topic": "Preprocessing & dati", "text": "In data preprocessing, which of the operations below performs aggregation?", "options": [{"key": "A", "text": "Combination of two attributes in order to obtain a more general attribute with smaller variability"}, {"key": "B", "text": "Reduction of the number of distinct values of an attribute in order to reduce its variability"}, {"key": "C", "text": "Reduction of the number of rows of the dataset by applying a grouping on one or more attributes and computing the measures as the results of aggregation functions"}, {"key": "D", "text": "Combination of two or more datasets in order to obtain more Information"}], "correct": ["B", "C"], "note": "", "source": "banco 2026"}, {"id": "m071", "topic": "BI & DWH", "text": "What is Data Ingestion?", "options": [{"key": "A", "text": "A process that copies data from sources to a repository, taking care of possible differences in speed between the generation and the storing process"}, {"key": "B", "text": "A process that copies data from sources to a repository, ensuring high data quality"}, {"key": "C", "text": "A process that copies data from sources to a repository, making the transformation required by the users"}, {"key": "D", "text": "A process that copies data from sources to a Data Warehouse guaranteeing the correctness of data with respect to the schema"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m072", "topic": "Preprocessing & dati", "text": "Which preprocessing activity is appropriate when a categorical attribute has a too large number of distinct values?", "options": [{"key": "A", "text": "Rescaling"}, {"key": "B", "text": "Non linear transformations"}, {"key": "C", "text": "Aggregation"}, {"key": "D", "text": "OneHot Encoding"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m073", "topic": "Clustering", "text": "Which of the statements below about Hierarchical Agglomerative Clustering is true?", "options": [{"key": "A", "text": "Requires the definition of Inertia of clusters"}, {"key": "B", "text": "Requires the definition of distance between sets of objects"}, {"key": "C", "text": "Is very efficient also with large datasets"}, {"key": "D", "text": "Is based on a well founded statistical model"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m074", "topic": "Classificazione & ML", "text": "Which of the following preprocessing activities is useful to build a Naive Bayes classifier if the independence hypothesis is violated?", "options": [{"key": "A", "text": "Discretisation"}, {"key": "B", "text": "Normalisation"}, {"key": "C", "text": "Standardisation"}, {"key": "D", "text": "Feature selection"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m075", "topic": "Classificazione & ML", "text": "In a decision tree, an attribute which is used only in nodes near the leaves...", "options": [{"key": "A", "text": "... is irrelevant with respect to the target"}, {"key": "B", "text": "guarantees high increment of purity"}, {"key": "C", "text": "... gives little insight with respect to the target"}, {"key": "D", "text": "... has a high correlation with respect to the target"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m076", "topic": "Preprocessing & dati", "text": "Which of the following is not a property of a metric distance function?", "options": [{"key": "A", "text": "Symmetry"}, {"key": "B", "text": "Positive definiteness"}, {"key": "C", "text": "Triangle inequality"}, {"key": "D", "text": "Boundedness"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m077", "topic": "Preprocessing & dati", "text": "Which distance function is best suited for Boolean data?", "options": [{"key": "A", "text": "Euclidean distance"}, {"key": "B", "text": "Cosine distance"}, {"key": "C", "text": "Manhattan distance"}, {"key": "D", "text": "Jaccard coefficient"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m078", "topic": "Regressione", "text": "How can we measure the quality of a trained regression model?", "options": [{"key": "A", "text": "With a formula elaborating the difference between the forecast values and the true ones"}, {"key": "B", "text": "With a confusion matrix"}, {"key": "C", "text": "Counting the number of values correctly forecast"}, {"key": "D", "text": "With precision, recall and accuracy"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m079", "topic": "Association Rules", "text": "Which of the following statements regarding the discovery of association rules is true?", "options": [{"key": "A", "text": "The confidence of a rule can be computed starting from the supports of the itemsets"}, {"key": "B", "text": "The support of an itemset is anti-monotonic with respect to the composition of the itemset"}, {"key": "C", "text": "The support of a rule can be computed given the confidence of the rule"}, {"key": "D", "text": "The confidence of an itemset is anti-monotonic with respect to the composition of the itemset"}], "correct": ["A", "B"], "note": "", "source": "banco 2026"}, {"id": "m080", "topic": "Clustering", "text": "Which of the statements below is true regarding DBSCAN?", "options": [{"key": "A", "text": "Increasing the radius of the neighbourhood can decrease the number of noise points"}, {"key": "B", "text": "DBSCAN always stops to a configuration which gives the optimal number of clusters"}, {"key": "C", "text": "Sometimes DBSCAN stops to a configuration which does not include any cluster"}, {"key": "D", "text": "DBscan can give good performance when clusters have concavities"}], "correct": ["A", "C", "D"], "note": "", "source": "banco 2026"}, {"id": "m081", "topic": "BI & DWH", "text": "Which of the definition below describes the OLAP operation \"Drill-Down\"?", "options": [{"key": "A", "text": "Reduces data aggregation and adds a detail level to a hierarchy"}, {"key": "B", "text": "Creates a link between concepts in interrelated cubes, to compare them"}, {"key": "C", "text": "Changes the layout, in order to analyse a group of data from a different viewpoint"}, {"key": "D", "text": "Causes an increase in data aggregation and removes a detail level in a hierarchy"}, {"key": "E", "text": "Reduces the number of cube dimensions after setting one of the dimensions to a specific value"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m082", "topic": "Clustering", "text": "What is the purpose of updating the similarity matrix in agglomerative clustering?", "options": [{"key": "A", "text": "To calculate the pairwise similarity or distance between all clusters"}, {"key": "B", "text": "To reflect the changes after merging clusters"}, {"key": "C", "text": "To assign each data point to a cluster based on the final structure obtained from the dendrogram"}, {"key": "D", "text": "To determine the distance or similarity between clusters"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m083", "topic": "Classificazione & ML", "text": "The Information Gain is used to...", "options": [{"key": "A", "text": "Select the attribute which maximises, for a given training set, the ability to predict the class value"}, {"key": "B", "text": "Select the attribute which maximises, for a given test set, the ability to predict the class value"}, {"key": "C", "text": "Select the attribute which maximises, for a given training set, the ability to predict all the other attribute values"}, {"key": "D", "text": "Select the class with maximum probability"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m084", "topic": "Classificazione & ML", "text": "In which mining activity can the Information Gain be useful?", "options": [{"key": "A", "text": "Discovery of association rules"}, {"key": "B", "text": "Classification"}, {"key": "C", "text": "Clustering"}, {"key": "D", "text": "Discretization"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m085", "topic": "Preprocessing & dati", "text": "Given the two binary vectors below, which is their similarity according to the Jaccard Coefficient? 1000101101 1011101010", "options": [{"key": "A", "text": "0.1"}, {"key": "B", "text": "0.2"}, {"key": "C", "text": "0.5"}, {"key": "D", "text": "0.375"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m086", "topic": "Clustering", "text": "What is the single linkage?", "options": [{"key": "A", "text": "A method to compute the distance between two objects, it can be used in hierarchical clustering"}, {"key": "B", "text": "A method to compute the distance between two sets of items, it can be used in hierarchical clustering"}, {"key": "C", "text": "A method to compute the distance between two classes, it can be used in decision trees"}, {"key": "D", "text": "A method to compute the separation of the objects inside a cluster"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m087", "topic": "Preprocessing & dati", "text": "Which is different from the others?", "options": [{"key": "A", "text": "Expectation Maximisation"}, {"key": "B", "text": "Apriori"}, {"key": "C", "text": "K-means"}, {"key": "D", "text": "Decision Tree"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m088", "topic": "Clustering", "text": "Which of the following is a strength of the clustering algorithm DBSCAN?", "options": [{"key": "A", "text": "Requires to set the number of clusters as a parameter"}, {"key": "B", "text": "Ability to find cluster with concavities"}, {"key": "C", "text": "Ability to separate outliers from regular data"}, {"key": "D", "text": "Very fast by computation"}], "correct": ["B", "C"], "note": "", "source": "banco 2026"}, {"id": "m089", "topic": "Classificazione & ML", "text": "Which of the following measure can be used as an alternative to the Information Gain?", "options": [{"key": "A", "text": "Sihlouette Index"}, {"key": "B", "text": "Gini Index"}, {"key": "C", "text": "Rand Index"}, {"key": "D", "text": "Jaccard Index"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m090", "topic": "Classificazione & ML", "text": "Given the definitions: TP=True Positives; TN=True Negatives; FP=False Positives; FN=False Negatives. Which formula computes the Accuracy?", "options": [{"key": "A", "text": "TN/(TN+FP)"}, {"key": "B", "text": "(TP+TN)/(TP+FP+TN+FN)"}, {"key": "C", "text": "TP/(TP+FN)"}, {"key": "D", "text": "TP/(TP+FP)"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m091", "topic": "Clustering", "text": "Which of the following characteristic of data can reduce the effectiveness of DBSCAN?", "options": [{"key": "A", "text": "Clusters have concavities"}, {"key": "B", "text": "All the variables are the same range of values"}, {"key": "C", "text": "Presence of outliers"}, {"key": "D", "text": "Presence of clusters with different densities"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m092", "topic": "Association Rules", "text": "Consider the transactional dataset: 1 {A,B,C} 2 {A,B,D} 3 {B,D,E} 4 {C,D} 5 {A,C,D,E} Which is the support of the rule A,C -> B?", "options": [{"key": "A", "text": "100%"}, {"key": "B", "text": "20%"}, {"key": "C", "text": "40%"}, {"key": "D", "text": "50%"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m093", "topic": "BI & DWH", "text": "Associate the various Data Warehouse Architectures to the respective advantages: 1. Single Layer 2. Two Layers 3. Three Layers a. The workloads for analysis and daily operations are separated b. An intermediate level of consolidated data is available c. The occupation of space is minimised", "options": [{"key": "A", "text": "1-a, 2-b, 3-c"}, {"key": "B", "text": "1-c, 2-a, 3-b"}, {"key": "C", "text": "1-b, 2-c, 3-a"}, {"key": "D", "text": "1-c, 2-b, 3-a"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m094", "topic": "Classificazione & ML", "text": "In a Neural Network, what is the backpropagation?", "options": [{"key": "A", "text": "The technique used to adjust the node weights according to the difference between the desired output and the output generated"}, {"key": "B", "text": "The technique used to adjust the weights limiting the probability of overfitting"}, {"key": "C", "text": "The technique used to adjust the output according to the difference between the desired weights and the actual weights"}, {"key": "D", "text": "The technique used to adjust the connection weights according to the difference between the desired output and the output generated by the network"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m095", "topic": "Preprocessing & dati", "text": "In feature selection, what is the Principal Component Analysis (PCA)?", "options": [{"key": "A", "text": "A mathematical technique used to transform non numeric attributes into numeric attributes"}, {"key": "B", "text": "A mathematical technique used to transform a set of numeric attributes into a smaller set of numeric attributes which capture most of the variability in data"}, {"key": "C", "text": "A heuristic technique used to find a subset of the attributes which produces the same classifier"}, {"key": "D", "text": "A mathematical technique used to find the principal attributes which determine the classification process"}], "correct": ["B"], "note": "", "source": "banco 2026"}, {"id": "m096", "topic": "Preprocessing & dati", "text": "Which is different from the others?", "options": [{"key": "A", "text": "Dbscan"}, {"key": "B", "text": "SVM"}, {"key": "C", "text": "Neural Network"}, {"key": "D", "text": "Decision Tree"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m097", "topic": "BI & DWH", "text": "Talking about the general idea of database, what is the purpose of the \"Schema on read\" strategy?", "options": [{"key": "A", "text": "Avoid preprocessing of data before writing"}, {"key": "B", "text": "Optimisation for various types of queries"}, {"key": "C", "text": "Possibility to extract data in various shapes"}, {"key": "D", "text": "Flexibility for any kind of query"}], "correct": ["A", "C", "D"], "note": "", "source": "banco 2026"}, {"id": "m098", "topic": "Clustering", "text": "What measure is maximised by the Expectation Maximisation algorithm for clustering?", "options": [{"key": "A", "text": "The likelihood of a class label, given the attributes of the example"}, {"key": "B", "text": "The likelihood of an attribute, given the class lab"}, {"key": "C", "text": "The likelihood of an example"}, {"key": "D", "text": "The support of a class"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m099", "topic": "Preprocessing & dati", "text": "In data preprocessing, which of the following is not an objective of the aggregation of attributes?", "options": [{"key": "A", "text": "Reduce the variability of data"}, {"key": "B", "text": "Obtain a less detailed scale"}, {"key": "C", "text": "Reduce the number of attributes or objects"}, {"key": "D", "text": "Obtain a more detailed description of data"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m100", "topic": "BI & DWH", "text": "Which of the activities below is part of \"Business Understanding\" in the CRISP methodology?", "options": [{"key": "A", "text": "Which data are available?"}, {"key": "B", "text": "Which machine learning functions are necessary for my problem?"}, {"key": "C", "text": "Which data must be collected with a specific campaign?"}, {"key": "D", "text": "Which are the resources available (manpower, hardware, software, ...)"}], "correct": ["D"], "note": "", "source": "banco 2026"}, {"id": "m101", "topic": "Preprocessing & dati", "text": "Which of the following situations could suggest the use of MinMax scaling?", "options": [{"key": "A", "text": "There are numeric attributes with very diverse value ranges"}, {"key": "B", "text": "There are attributes with very skewed data distributions"}, {"key": "C", "text": "There are attributes with a very large number of missing values"}, {"key": "D", "text": "There is a numeric attribute with values spread in a very large range"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m102", "topic": "BI & DWH", "text": "Which of the following sentences describes an advantage of a Data Warehouse with respect to a standard DBMS?", "options": [{"key": "A", "text": "Allows efficient execution of key-based queries"}, {"key": "B", "text": "Manages efficiently data updates"}, {"key": "C", "text": "Has tools for helping to solve inconsistencies"}, {"key": "D", "text": "Allows analysis along the time dimension"}, {"key": "E", "text": "Allows efficient execution of multi-dimensional queries"}], "correct": ["C", "D", "E"], "note": "", "source": "banco 2026"}, {"id": "m103", "topic": "Classificazione & ML", "text": "In a Decision Tree for classification, what is a leaf node?", "options": [{"key": "A", "text": "A node which assigns a class value to the objects passing the tests on the path from the root to the node itself"}, {"key": "B", "text": "A node where all the objects belong to the same class"}, {"key": "C", "text": "A node which allows classification without errors"}, {"key": "D", "text": "A node which assigns a class value only by majority of examples"}], "correct": ["A"], "note": "", "source": "banco 2026"}, {"id": "m104", "topic": "Preprocessing & dati", "text": "Which is the purpose of discretisation?", "options": [{"key": "A", "text": "Increase the number of distinct values in an attribute"}, {"key": "B", "text": "Reduce the number of distinct values in an attribute, in order to increase the efficiency"}, {"key": "C", "text": "Reduce the number of distinct values in an attribute, in order to put in evidence possible patterns and regularities"}, {"key": "D", "text": "Reduce the range of values of a numeric attribute"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m105", "topic": "BI & DWH", "text": "Which of the definition below describes the OLAP operation \"Roll-Up\"?", "options": [{"key": "A", "text": "Reduces data aggregation and adds a detail level to a hierarchy"}, {"key": "B", "text": "Changes the layout, in order to analyse a group of data from a different viewpoint"}, {"key": "C", "text": "Reduces the number of cube dimensions after setting one of the dimensions to a specific value"}, {"key": "D", "text": "Creates a link between concepts in interrelated cubes, to compare them"}, {"key": "E", "text": "Causes an increase in data aggregation and removes a detail level in a hierarchy"}], "correct": ["E"], "note": "", "source": "banco 2026"}, {"id": "m106", "topic": "Classificazione & ML", "text": "What is the Gini index?", "options": [{"key": "A", "text": "A measure of the entropy of a dataset"}, {"key": "B", "text": "An accuracy measure of a dataset alternative to the Information Gain"}, {"key": "C", "text": "An impurity measure of a dataset alternative to the Information Gain and to the Misclassification Index"}, {"key": "D", "text": "An impurity measure of a dataset alternative to overfitting and underfitting"}], "correct": ["C"], "note": "", "source": "banco 2026"}, {"id": "m107", "topic": "Preprocessing & dati", "text": "In data preprocessing, which of the following are the objectives of the aggregation of attributes?", "options": [{"key": "A", "text": "Obtain a more detailed description of data"}, {"key": "B", "text": "Obtain a less detailed scale"}, {"key": "C", "text": "Reduce the variability of data"}, {"key": "D", "text": "Reduce the number of attributes or distinct values"}], "correct": ["B", "C", "D"], "note": "", "source": "banco 2026"}, {"id": "a001", "topic": "Classificazione & ML", "text": "Given the following definitions: TP = True Positives; TN = True Negatives; FP = False Positives; FN = False Negatives. Which of the formulas below computes the precision of a binary classifier?", "options": [{"key": "A", "text": "TP / (TP + FP)"}, {"key": "B", "text": "(TP + TN) / (TP + FP + TN + FN)"}, {"key": "C", "text": "TN / (TN + FP)"}, {"key": "D", "text": "TP / (TP + FN)"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a002", "topic": "Preprocessing & dati", "text": "Which of the statements below is true?", "options": [{"key": "A", "text": "Sometimes k-means stops to a configuration which does not give the minimum distortion for the chosen value of the number of clusters"}, {"key": "B", "text": "K-means always stop to a configuration which gives the minimum distortion for the chosen value of the number of clusters"}, {"key": "C", "text": "K-means works well also with datasets having a very large number of attributes"}, {"key": "D", "text": "K-means finds the number of clusters which give the minimum distortion"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a003", "topic": "Preprocessing & dati", "text": "Which of the statements below is false?", "options": [{"key": "A", "text": "Increasing the radius of the neighourhood can decrease the number of noise points"}, {"key": "B", "text": "DBSCAN always stops to a configuration which gives the optimal number of clusters"}, {"key": "C", "text": "Sometimes DBSCAN stops to a configuration which does not include any cluster"}, {"key": "D", "text": "DBScan can give good performance when clusters have concavities"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a004", "topic": "Classificazione & ML", "text": "What are the hyperparameters of a Neural Network? (Possibly non exhaustive)", "options": [{"key": "A", "text": "Hidden layers structure, Output layer structure, Activation function, Number of epochs"}, {"key": "B", "text": "Network structure, Learning rate, Backpropagation algorithm, Number of epochs"}, {"key": "C", "text": "Input layers structure, Learning rate, Activation function, Number of epochs"}, {"key": "D", "text": "Hidden layers structure, Learning rate, Activation function, Number of epochs"}], "correct": ["D"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a005", "topic": "Association Rules", "text": "Consider the transactional dataset below. Which is the Confidence of the rule \"B -> E\"?  ID Items  1 A,B,C  2 A,B,D  3 B,D,E  4 C,D  5 A,C,D,E", "options": [{"key": "A", "text": "100%"}, {"key": "B", "text": "50%"}, {"key": "C", "text": "33%"}, {"key": "D", "text": "20%"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a006", "topic": "Association Rules", "text": "Name the following rule evaluation formula: sup(AuC) - sup(A)sup(C)", "options": [{"key": "A", "text": "Leverage"}, {"key": "B", "text": "Lift"}, {"key": "C", "text": "Confidence"}, {"key": "D", "text": "Conviction"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a007", "topic": "Association Rules", "text": "Name the following rule evaluation formula: conf(A->C) / sup(C)", "options": [{"key": "A", "text": "Leverage"}, {"key": "B", "text": "Lift"}, {"key": "C", "text": "Confidence"}, {"key": "D", "text": "Conviction"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a008", "topic": "Association Rules", "text": "Name the following rule evaluation formula: sup(A->C) / sup(A)", "options": [{"key": "A", "text": "Leverage"}, {"key": "B", "text": "Lift"}, {"key": "C", "text": "Confidence"}, {"key": "D", "text": "Conviction"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a009", "topic": "Association Rules", "text": "Name the following rule evaluation formula: [1 - sup(C)] / [1 - conf(A->C)]", "options": [{"key": "A", "text": "Leverage"}, {"key": "B", "text": "Lift"}, {"key": "C", "text": "Confidence"}, {"key": "D", "text": "Conviction"}], "correct": ["D"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a010", "topic": "Classificazione & ML", "text": "Given the following definitions: TP = True Positives; TN = True Negatives; FP = False Positives; FN = False Negatives. Which of the formulas below computes the accuracy of a binary classifier?", "options": [{"key": "A", "text": "TN / (TN + FP)"}, {"key": "B", "text": "(TP + TN) / (TP + FP + TN + FN)"}, {"key": "C", "text": "TP / (TP + FN)"}, {"key": "D", "text": "TP / (TP + FP)"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a011", "topic": "Preprocessing & dati", "text": "Choose the best suited distance function for this type of data: Vector space with real values", "options": [{"key": "A", "text": "Euclidean distance"}, {"key": "B", "text": "Cosine distance"}, {"key": "C", "text": "Manhattan distance"}, {"key": "D", "text": "Jaccard coefficient"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a012", "topic": "Preprocessing & dati", "text": "Choose the best suited distance function for this type of data: Vectors of terms representing documents", "options": [{"key": "A", "text": "Euclidean distance"}, {"key": "B", "text": "Cosine distance"}, {"key": "C", "text": "Manhattan distance"}, {"key": "D", "text": "Jaccard coefficient"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a013", "topic": "Preprocessing & dati", "text": "Choose the best suited distance function for this type of data: High dimensional spaces", "options": [{"key": "A", "text": "Euclidean distance"}, {"key": "B", "text": "Cosine distance"}, {"key": "C", "text": "Manhattan distance"}, {"key": "D", "text": "Jaccard coefficient"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a014", "topic": "Preprocessing & dati", "text": "Choose the best suited distance function for this type of data: Boolean data", "options": [{"key": "A", "text": "Euclidean distance"}, {"key": "B", "text": "Cosine distance"}, {"key": "C", "text": "Manhattan distance"}, {"key": "D", "text": "Jaccard coefficient"}], "correct": ["D"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a015", "topic": "Preprocessing & dati", "text": "Which of the statements below is FALSE?", "options": [{"key": "A", "text": "K-mean always stops to a configuration which gives the minimum distortion for the chosen value of the number of clusters"}, {"key": "B", "text": "K-means is very sensitive to the initial assignment of the centers"}, {"key": "C", "text": "K-means is quite efficient even for large datasets"}, {"key": "D", "text": "Sometimes K-means stops to a configuration which does not give the minimum distortion for the chosen value of the number of clusters"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a016", "topic": "Classificazione & ML", "text": "Given the following definitions: TP = True Positives; TN = True Negatives; FP = False Positives; FN = False Negatives. Which of the formulas below computes the Recall of a binary classifier?", "options": [{"key": "A", "text": "TP / (TP + FN)"}, {"key": "B", "text": "TN / (TN + FP)"}, {"key": "C", "text": "TP / (TP + FP)"}, {"key": "D", "text": "(TP + TN) / (TP + FP + TN + FN)"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a017", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Cleansing step?", "options": [{"key": "A", "text": "None of the others"}, {"key": "B", "text": "Usage of dictionaries to solve inconsistencies"}, {"key": "C", "text": "Snapshot of the operational data"}, {"key": "D", "text": "Association of a timestamp to the operational data"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a018", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Transformation step?", "options": [{"key": "A", "text": "None of the others"}, {"key": "B", "text": "Denormalisation"}, {"key": "C", "text": "Usage of dictionaries to solve inconsistencies"}, {"key": "D", "text": "Snapshot of the operational data"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a019", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Extraction step?", "options": [{"key": "A", "text": "Usage of dictionaries to solve inconsistencies"}, {"key": "B", "text": "Elimination of duplicates"}, {"key": "C", "text": "None of the others"}, {"key": "D", "text": "Association of a timestamp to the operational data"}], "correct": ["D"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a020", "topic": "BI & DWH", "text": "Talking about the general idea of database, which of the following is a purpose of \"Schema on write\" strategy?", "options": [{"key": "A", "text": "Optimization for specific types of queries"}, {"key": "B", "text": "Flexibility and efficiency for any kind of query"}, {"key": "C", "text": "Avoid preprocessing of data before writing"}, {"key": "D", "text": "None of the others"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a021", "topic": "BI & DWH", "text": "Talking about the general idea of database, which of the following is a purpose of \"Schema on write\" strategy?", "options": [{"key": "A", "text": "Flexibility and efficiency for any kind of query"}, {"key": "B", "text": "Clean design of the data structure"}, {"key": "C", "text": "Avoid preprocessing of data before writing"}, {"key": "D", "text": "None of the others"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a022", "topic": "BI & DWH", "text": "Which of the following sentences does NOT describe an advantage of a Data Warehouse with respect to a standard DBMS?", "options": [{"key": "A", "text": "Allows analysis along the time dimension"}, {"key": "B", "text": "Manages efficiently data updates"}, {"key": "C", "text": "Allows efficient execution of multi-dimensional queries"}, {"key": "D", "text": "Has tools for helping to solve inconsistencies"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a023", "topic": "BI & DWH", "text": "Which one of the following sentences does NOT describe a characteristic of a Data Warehouse?", "options": [{"key": "A", "text": "Non volatile"}, {"key": "B", "text": "Includes the time dimension"}, {"key": "C", "text": "Constantly updated as soon as the base data are updated"}, {"key": "D", "text": "Solves the inconsistencies"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a024", "topic": "BI & DWH", "text": "Which one of the following sentences does NOT describe a characteristic of a Data Warehouse?", "options": [{"key": "A", "text": "Non volatile"}, {"key": "B", "text": "Includes the time dimension"}, {"key": "C", "text": "Solves the inconsistencies"}, {"key": "D", "text": "Includes all the base data in their native format"}], "correct": ["D"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a025", "topic": "BI & DWH", "text": "Which of the following are NOT typical data warehouse queries?", "options": [{"key": "A", "text": "What is the total revenue of yesterday in shop \"BO03\"?"}, {"key": "B", "text": "Which products maximize the profit?"}, {"key": "C", "text": "What is the relationship between profits gained by products \"WWW\" and \"ZZZ\"?"}, {"key": "D", "text": "What is the total revenue per product category and state?"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a026", "topic": "Preprocessing & dati", "text": "Which is different from others:", "options": [{"key": "A", "text": "Expectation Maximisation"}, {"key": "B", "text": "Apriori"}, {"key": "C", "text": "K-means"}, {"key": "D", "text": "Decision Tree"}], "correct": ["D"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a027", "topic": "Preprocessing & dati", "text": "Which of the following statements is true?", "options": [{"key": "A", "text": "The noise always generates outliers"}, {"key": "B", "text": "The data which are similar to the majority are never noise"}, {"key": "C", "text": "The noise can generate outliers"}, {"key": "D", "text": "The noise never generates outliers"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a028", "topic": "Preprocessing & dati", "text": "In data preparation which is the effect of normalisation?", "options": [{"key": "A", "text": "Map all the numeric attributes to the same range, without altering the distribution, in order to avoid that attributes with large ranges have more influence"}, {"key": "B", "text": "Map all the numeric attributes subtracting the respective mean and dividing by variance"}, {"key": "C", "text": "Map all the numeric attributes to the same range and to have a Gaussian (or normal) distribution, in order to avoid that attributes with large ranges have more influence"}, {"key": "D", "text": "Map all the numeric attributes in order to have a Gaussian (or normal) distruibution, in order to avoid that attributes with large ranges have more influence"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a030", "topic": "Preprocessing & dati", "text": "Which is the main reason for the standardization of numeric attributes?", "options": [{"key": "A", "text": "Change the distribution of the numeric attributes, in order to obtain gaussian distributions"}, {"key": "B", "text": "Map all the numeric attributes to a new range such that the mean is zero and the variance is one"}, {"key": "C", "text": "Mapp all the nominal attributes to the same range, in order to prevent the values with higher frequency from having prevailing influence"}, {"key": "D", "text": "Remove non-standard values"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a031", "topic": "Clustering", "text": "After fitting DBSCAN with the default parameter values the results are: 0 clusters, 100% of noise points. Which will be your next trial?", "options": [{"key": "A", "text": "Reduce the minimum number of objects in the neighborhood or increase the radius of the neighborhood"}, {"key": "B", "text": "Reduce the minimum number of objects in the neighborhood and the radius of the neighborhood"}, {"key": "C", "text": "Decrease the radius of the neighborhood"}, {"key": "D", "text": "None of the others"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a032", "topic": "Association Rules", "text": "Which of the statements below best describes the strategy of Apriori in finding the frequent itemsets?", "options": [{"key": "A", "text": "Evaluation of the support of the itemsets in an order such that uninteresting parts of the search space are considered only at the end of the execution"}, {"key": "B", "text": "Evaluation of the confidence of the itemsets in an order such that uninteresting parts of the search space are pruned as soon as possible"}, {"key": "C", "text": "Evaluation of the support of the itemsets in an order such that uninteresting parts of the search space are pruned as soon as possible"}, {"key": "D", "text": "Evaluation of the support of the itemsets in an order such that the interesting parts of the search space are pruned as soon as possible"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a033", "topic": "Classificazione & ML", "text": "What is the Gini Index?", "options": [{"key": "A", "text": "A measure of the Entropy of a dataset"}, {"key": "B", "text": "An accuracy measure of a dataset alternative to the Information Gain and to the Misclassification Index"}, {"key": "C", "text": "An impurity measure of a dataset alternative to the Information Gain and to the Misclassification Index"}, {"key": "D", "text": "An impurity measure of a dataset alternative to Overfitting and Underfitting"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a034", "topic": "Clustering", "text": "What measure is maximised by the Expectation Maximisation algorithm for clustering?", "options": [{"key": "A", "text": "The likelihood of a class label, given the attributes of the example"}, {"key": "B", "text": "The likelihood of an attribute, given the class label"}, {"key": "C", "text": "The likelihood of an example"}, {"key": "D", "text": "The support of a class"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a035", "topic": "Clustering", "text": "Which of the follwing is a strength of the clustering algorithm DBSCAN?", "options": [{"key": "A", "text": "Requires to set the number of clusters as a parameter"}, {"key": "B", "text": "Ability to find cluster with concavities and separate outliers from regular data"}, {"key": "C", "text": "Ability to find clusters regardless of density"}, {"key": "D", "text": "Very fast by computation"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a036", "topic": "Association Rules", "text": "Which of the following statements regarding the discovery of association rules is true?", "options": [{"key": "A", "text": "The confidence of a rule can't be computed starting from the supports of the itemsets"}, {"key": "B", "text": "The support of an itemset is anti-monotonic with respect to the composition of the itemset"}, {"key": "C", "text": "The support of a rule can be computed given the confidence of the rule"}, {"key": "D", "text": "The confidence of an itemset is anti-monotonic with respect to the composition of the itemset"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a037", "topic": "Preprocessing & dati", "text": "Which is the effect of the Curse of Dimensionality", "options": [{"key": "A", "text": "When the number of dimensions increases the results tend to be prone to overfitting"}, {"key": "B", "text": "When the number of dimensions increases the euclidean distance becomes less effective to discriminate between points in the space"}, {"key": "C", "text": "When the number of dimensions increases the computing power necessary to compute the distances becomes too high"}, {"key": "D", "text": "When the number of dimensions increases the classifiers cannot be correctly tuned"}], "correct": ["B"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a039", "topic": "Classificazione & ML", "text": "In a Neural Network, what is the Backpropagation?", "options": [{"key": "A", "text": "The technique used to adjust the node weights according to the difference between the desired output and the output generated by the network"}, {"key": "B", "text": "The technique used to adjust the weights limiting the probability of overfitting"}, {"key": "C", "text": "The technique used to adjust the output according to the difference between the desired weights and the actual weights"}, {"key": "D", "text": "The technique used to adjust the connection weights according to the difference between the desired output and the output generated by the network"}], "correct": ["D"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a041", "topic": "Preprocessing & dati", "text": "Which is the purpose of discretisation?", "options": [{"key": "A", "text": "Increase the number of distinct values in an attribute, in order to put in evidence possible patterns and regularities"}, {"key": "B", "text": "Reduce the number of distinct values in an attribute, in order to increase the efficiency of the computations"}, {"key": "C", "text": "Reduce the number of distinct values in an attribute, in order to put in evidence possible patterns and regularities"}, {"key": "D", "text": "Reduce the range of values of a numeric attribute, to make all the attributes more comparable"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a042", "topic": "Preprocessing & dati", "text": "Which is the main reason for the MinMax Scaling (also known as \"Rescaling\") of attributes?", "options": [{"key": "A", "text": "Change the distribution of the numeric attributes, in order to obtain gaussian distributions"}, {"key": "B", "text": "Map all the nominal attributes to the same range in order to prevent the values with higher frequency from having prevailing influence"}, {"key": "C", "text": "Remove abnormal values"}, {"key": "D", "text": "Map all the numeric attributes to the same range, in order to prevent attributes with higher range from having prevalent influence"}], "correct": ["D"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a043", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Cleansing step?", "options": [{"key": "A", "text": "Elimination of duplicates"}, {"key": "B", "text": "None of the others"}, {"key": "C", "text": "Snapshot of the operational data"}, {"key": "D", "text": "Association of a timestamp to the operational data"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a044", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Transformation step?", "options": [{"key": "A", "text": "Calculation of derived data"}, {"key": "B", "text": "None of the others"}, {"key": "C", "text": "Usage of dictionaries to solve inconsistencies"}, {"key": "D", "text": "Snapshot of the operational data"}], "correct": ["A"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a045", "topic": "BI & DWH", "text": "Talking about ETL, which of the following activities is related to the Extraction step?", "options": [{"key": "A", "text": "Usage of dictionaries to solve inconsistencies"}, {"key": "B", "text": "Elimination of duplicates"}, {"key": "C", "text": "Snapshot of the operational data"}, {"key": "D", "text": "None of the others"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a046", "topic": "BI & DWH", "text": "Which of the following sentences does NOT describe an advantage of a Data Warehouse with respect to a standard DBMS?", "options": [{"key": "A", "text": "Allows analysis along the time dimension"}, {"key": "B", "text": "Allows efficient execution of multi-dimensional queries"}, {"key": "C", "text": "Allows efficient execution of key-based queries"}, {"key": "D", "text": "Has tools for helping to solve inconsistencies"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a047", "topic": "BI & DWH", "text": "What is the ranking for the following technologies, based on the increasing level of abstraction?  Technologies:  - OLAP analysis on Data Mart  - Data Mining on operational databases;  - SQL queries on operational databases;  Order: from left (it generates the most specific information) to right (it has a higher level of knowledge).", "options": [{"key": "A", "text": "Data Mining, OLAP analysis, SQL queries"}, {"key": "B", "text": "OLAP analysis, Data Mining, SQL queries"}, {"key": "C", "text": "SQL queries, OLAP analysis, Data Mining"}, {"key": "D", "text": "OLAP analysis, SQL queries, Data Mining"}, {"key": "E", "text": "SQL queries, Data Mining, OLAP analysis"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}, {"id": "a048", "topic": "BI & DWH", "text": "Which of the following are NOT typical data warehouse queries?", "options": [{"key": "A", "text": "What is the total revenue per product category and state?"}, {"key": "B", "text": "Which products maximize the profit?"}, {"key": "C", "text": "Which is the stock of product \"XXX\" in the \"YYY\" warehouse?"}, {"key": "D", "text": "What is the relationship between profits gained by products \"WWW\" and \"ZZZ\"?"}], "correct": ["C"], "note": "Variante del banco vecchio (app studenti).", "source": "app"}];</script>
 <script>
-/* Leitner "cram mode" spaced-repetition engine — 3-day horizon.
-   State per question id in localStorage: {box, due, seen, lapses, last}.
-   Grades: again -> box 0, due now (requeued after other dues)
-           hard  -> same box, due +10 min
-           good  -> box +1, due +4h (box1) / +1d (box2+)
-           easy  -> box +2, due +1d
-   SR.next(topic) priority: due reviews (oldest due first) -> fresh (bank order) -> null. */
+/* Leitner "cram mode" spaced-repetition engine, v2.
+   State per question id in localStorage KEY: {box, due, seen, lapses, last}.
+   Intervals are CONFIGURABLE via SR.setSettings (persisted in SKEY):
+     again -> box 0, due now (requeued after other dues)
+     hard  -> same box, due + hardMin minutes
+     good  -> box +1, due + goodFirstH hours (box<=1) / + goodNextD days
+     easy  -> box +2, due + easyD days
+   Extra API: SR.settings(), SR.setSettings(s), SR.exportState(), SR.importState(json),
+              SR.boxes() -> counts per box for the home chart, SR.preview() -> labels. */
 (function () {
   "use strict";
   var KEY = "dmquiz_sr_v1";
+  var SKEY = "dmquiz_settings_v1";
   var MIN = 60 * 1000, HOUR = 60 * MIN, DAY = 24 * HOUR;
+  var DEFAULTS = { hardMin: 10, goodFirstH: 4, goodNextD: 1, easyD: 1 };
 
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
-    catch (e) { return {}; }
+  function loadJSON(k, fallback) {
+    try { return JSON.parse(localStorage.getItem(k)) || fallback; }
+    catch (e) { return fallback; }
   }
   function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
   function today() { return new Date().toDateString(); }
 
-  var state = load();
+  var state = loadJSON(KEY, {});
+  var settings = Object.assign({}, DEFAULTS, loadJSON(SKEY, {}));
   if (!state._meta) state._meta = { day: today(), done: 0 };
   if (state._meta.day !== today()) state._meta = { day: today(), done: 0 };
 
@@ -41,6 +236,22 @@
     return window.BANK.filter(function (q) {
       return !topic || topic === "All" || q.topic === topic;
     });
+  }
+
+  function fmt(ms) {
+    if (ms < MIN) return "subito";
+    if (ms < HOUR) return Math.round(ms / MIN) + " min";
+    if (ms < DAY) return Math.round(ms / HOUR) + " ore";
+    var d = Math.round(ms / DAY);
+    return d === 1 ? "1 giorno" : d + " giorni";
+  }
+
+  function intervalFor(grade, box) {
+    if (grade === "again") return 0;
+    if (grade === "hard") return settings.hardMin * MIN;
+    if (grade === "good") return (box + 1) <= 1 ? settings.goodFirstH * HOUR
+                                                : settings.goodNextD * DAY;
+    return settings.easyD * DAY; // easy
   }
 
   var SR = {
@@ -64,16 +275,15 @@
       var c = state[id] || { box: 0, seen: 0, lapses: 0 };
       c.seen += 1; c.last = now;
       if (grade === "again") { c.box = 0; c.lapses += 1; c.due = now; }
-      else if (grade === "hard") { c.due = now + 10 * MIN; }
-      else if (grade === "good") {
-        c.box += 1;
-        c.due = now + (c.box <= 1 ? 4 * HOUR : DAY);
-      } else { // easy
-        c.box += 2; c.due = now + DAY;
+      else {
+        c.due = now + intervalFor(grade, c.box);
+        if (grade === "good") c.box += 1;
+        else if (grade === "easy") c.box += 2;
       }
       state[id] = c;
       state._meta.done += 1;
       save(state);
+      return fmt(Math.max(0, c.due - now));
     },
     stats: function (topic) {
       var now = Date.now();
@@ -86,6 +296,49 @@
       return { due: due, fresh: fresh, done: state._meta.done,
                total: cards(topic).length };
     },
+    boxes: function (topic) {
+      var b = [0, 0, 0, 0]; // box 0,1,2,3+
+      cards(topic).forEach(function (q) {
+        var c = state[q.id];
+        if (c) b[Math.min(c.box, 3)] += 1;
+      });
+      return b;
+    },
+    preview: function (id) {
+      // labels for the grade buttons, e.g. {again:"subito", hard:"10 min", ...}
+      var box = (state[id] || { box: 0 }).box;
+      return { again: "subito",
+               hard: fmt(intervalFor("hard", box)),
+               good: fmt(intervalFor("good", box)),
+               easy: fmt(intervalFor("easy", box)) };
+    },
+    settings: function () { return Object.assign({}, settings); },
+    setSettings: function (s) {
+      ["hardMin", "goodFirstH", "goodNextD", "easyD"].forEach(function (k) {
+        var v = parseFloat(s[k]);
+        if (!isNaN(v) && v > 0) settings[k] = v;
+      });
+      localStorage.setItem(SKEY, JSON.stringify(settings));
+      return SR.settings();
+    },
+    resetSettings: function () {
+      settings = Object.assign({}, DEFAULTS);
+      localStorage.setItem(SKEY, JSON.stringify(settings));
+      return SR.settings();
+    },
+    exportState: function () {
+      return JSON.stringify({ v: 2, exported: new Date().toISOString(),
+                              state: state, settings: settings });
+    },
+    importState: function (json) {
+      var data = JSON.parse(json);            // throws on garbage -> UI catches
+      if (!data || typeof data.state !== "object") throw new Error("backup non valido");
+      state = data.state;
+      if (!state._meta) state._meta = { day: today(), done: 0 };
+      save(state);
+      if (data.settings) SR.setSettings(data.settings);
+      return true;
+    },
     randomTen: function (topic) {
       var pool = cards(topic).map(function (q) { return q.id; });
       for (var i = pool.length - 1; i > 0; i--) {
@@ -94,7 +347,9 @@
       }
       return pool.slice(0, 10);
     },
-    _reset: function () { state = { _meta: { day: today(), done: 0 } }; save(state); }
+    _reset: function () {
+      state = { _meta: { day: today(), done: 0 } }; save(state);
+    }
   };
   window.SR = SR;
 })();
@@ -104,355 +359,527 @@
 (function () {
   "use strict";
 
-  var app = null;
-  var currentQuestion = null;
-  var currentOrder = [];
-  var selected = {};
-  var answered = false;
-  var fallbackQueue = [];
+  var app = document.getElementById("app");
+  var BANK = window.BANK || [];
+  var SR = window.SR;
+  var byId = {};
+  var currentTopic = null;
+  var view = "home";
+  var session = null;
+  var current = null;
+  var toastTimer = null;
+  var keyListenerReady = false;
 
-  var UI = {
-    topicFilter: "All",
-    start: start
-  };
-
-  window.UI = UI;
-
-  function start() {
-    app = document.getElementById("app");
-    if (!app) {
-      return;
-    }
-    renderHome();
-  }
-
-  function clear(el) {
-    while (el.firstChild) {
-      el.removeChild(el.firstChild);
-    }
-  }
+  BANK.forEach(function (q) {
+    byId[q.id] = q;
+  });
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = String(text);
-    }
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
     return node;
   }
 
-  function button(text, className, onClick) {
-    var btn = el("button", className || "btn", text);
-    btn.type = "button";
-    btn.addEventListener("click", onClick);
-    return btn;
+  function button(className, text, onClick) {
+    var b = el("button", className, text);
+    b.type = "button";
+    if (onClick) b.addEventListener("click", onClick);
+    return b;
   }
 
-  function getStats() {
-    if (!window.SR || typeof window.SR.stats !== "function") {
-      return { due: 0, fresh: 0, done: 0, total: 0 };
-    }
-    return window.SR.stats();
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
   }
 
-  function topics() {
+  function uniqueTopics() {
     var seen = {};
-    var list = [];
-    (window.BANK || []).forEach(function (q) {
-      if (q && q.topic && !seen[q.topic]) {
+    var topics = [];
+    BANK.forEach(function (q) {
+      if (q.topic && !seen[q.topic]) {
         seen[q.topic] = true;
-        list.push(q.topic);
+        topics.push(q.topic);
       }
     });
-    list.sort();
-    return list;
-  }
-
-  function renderShell(content) {
-    clear(app);
-    app.appendChild(renderHeader());
-    app.appendChild(content);
-  }
-
-  function renderHeader() {
-    var header = el("div", "header");
-
-    header.appendChild(button("🏠", "btn", function () {
-      fallbackQueue = [];
-      renderHome();
-    }));
-
-    var stats = getStats();
-    header.appendChild(el("div", "stats", "Da ripassare: " + stats.due + " · Nuove: " + stats.fresh));
-
-    var select = document.createElement("select");
-    select.className = "btn";
-    select.setAttribute("aria-label", "Filtro argomento");
-
-    var all = document.createElement("option");
-    all.value = "All";
-    all.textContent = "Tutti";
-    select.appendChild(all);
-
-    topics().forEach(function (topic) {
-      var option = document.createElement("option");
-      option.value = topic;
-      option.textContent = topic;
-      select.appendChild(option);
+    topics.sort(function (a, b) {
+      return a.localeCompare(b, "it");
     });
-
-    select.value = UI.topicFilter || "All";
-    select.addEventListener("change", function () {
-      UI.topicFilter = select.value;
-      fallbackQueue = [];
-      renderHome();
-    });
-
-    header.appendChild(select);
-    return header;
-  }
-
-  function renderHome() {
-    currentQuestion = null;
-    answered = false;
-    selected = {};
-
-    var wrap = el("div", "home");
-    wrap.appendChild(el("h1", "", "DM Quiz"));
-
-    var stats = getStats();
-    wrap.appendChild(
-      el(
-        "div",
-        "stats",
-        "Da ripassare: " + stats.due + " · Nuove: " + stats.fresh + " · Fatte oggi: " + stats.done
-      )
-    );
-
-    wrap.appendChild(button("Studia", "btn btn-primary", function () {
-      showNext();
-    }));
-
-    renderShell(wrap);
-  }
-
-  function showEmpty() {
-    var wrap = el("div", "home");
-    wrap.appendChild(el("h1", "", "🎉 Niente da ripassare ora"));
-    wrap.appendChild(button("Ripassa comunque 10 a caso", "btn btn-primary", function () {
-      fallbackQueue = randomQuestions(10);
-      showNext();
-    }));
-    renderShell(wrap);
-  }
-
-  function showNext() {
-    var id = null;
-
-    if (fallbackQueue.length) {
-      id = fallbackQueue.shift();
-    } else if (window.SR && typeof window.SR.next === "function") {
-      id = window.SR.next(UI.topicFilter === "All" ? null : UI.topicFilter);
-    }
-
-    if (id === null || id === undefined) {
-      showEmpty();
-      return;
-    }
-
-    var q = findQuestion(id);
-    if (!q) {
-      renderHome();
-      return;
-    }
-
-    renderQuestion(q);
-  }
-
-  function findQuestion(id) {
-    var bank = window.BANK || [];
-    for (var i = 0; i < bank.length; i += 1) {
-      if (bank[i] && bank[i].id === id) {
-        return bank[i];
-      }
-    }
-    return null;
-  }
-
-  function randomQuestions(limit) {
-    var bank = (window.BANK || []).filter(function (q) {
-      return q && (UI.topicFilter === "All" || q.topic === UI.topicFilter);
-    });
-
-    var ids = shuffle(bank.slice()).slice(0, limit).map(function (q) {
-      return q.id;
-    });
-
-    return ids;
+    return topics;
   }
 
   function shuffle(items) {
-    for (var i = items.length - 1; i > 0; i -= 1) {
+    var out = items.slice();
+    for (var i = out.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
-      var tmp = items[i];
-      items[i] = items[j];
-      items[j] = tmp;
+      var tmp = out[i];
+      out[i] = out[j];
+      out[j] = tmp;
     }
-    return items;
+    return out;
   }
 
-  function renderQuestion(q) {
-    currentQuestion = q;
-    currentOrder = shuffle((q.options || []).slice());
-    selected = {};
-    answered = false;
+  function sameSet(a, b) {
+    if (a.length !== b.length) return false;
+    var m = {};
+    a.forEach(function (x) {
+      m[x] = true;
+    });
+    return b.every(function (x) {
+      return m[x];
+    });
+  }
 
-    var wrap = el("div", "question");
-
-    wrap.appendChild(el("div", "topic", q.topic || ""));
-    wrap.appendChild(el("div", "qtext", q.text || ""));
-
-    var isMulti = (q.correct || []).length > 1;
-    if (isMulti) {
-      wrap.appendChild(el("div", "note", "Seleziona TUTTE le risposte corrette"));
+  function topicFilter(value) {
+    if (arguments.length) {
+      currentTopic = value || null;
+      renderHome();
     }
+    return currentTopic;
+  }
 
-    var optionsWrap = el("div", "options");
-    currentOrder.forEach(function (opt, index) {
-      optionsWrap.appendChild(renderOptionButton(q, opt, index, isMulti));
-    });
-    wrap.appendChild(optionsWrap);
+  function render() {
+    if (view === "home") renderHome();
+    else if (view === "settings") renderSettings();
+    else if (view === "empty") renderEmpty();
+    else renderQuestion();
+  }
 
-    if (isMulti) {
-      wrap.appendChild(button("Conferma", "btn btn-primary", function () {
-        if (!answered) {
-          submitAnswer(q);
-        }
-      }));
+  function start() {
+    installKeyboard();
+    renderHome();
+  }
+
+  function renderHeader(root) {
+    var header = el("div", "header");
+    header.appendChild(button("btn-icon", "🏠", function () {
+      session = null;
+      renderHome();
+    }));
+
+    var s = SR.stats(currentTopic);
+    header.appendChild(el("div", "hstats", "📥 " + s.due + " · ✨ " + s.fresh));
+
+    header.appendChild(button("btn-icon", "⚙️", function () {
+      renderSettings();
+    }));
+    root.appendChild(header);
+
+    var progress = el("div", "progressbar");
+    var inner = el("div");
+    var pct = 0;
+    if (session) {
+      var total = Math.max(1, session.answered + session.remaining());
+      pct = Math.min(100, Math.round((session.answered / total) * 100));
     }
-
-    renderShell(wrap);
+    inner.style.width = pct + "%";
+    progress.appendChild(inner);
+    root.appendChild(progress);
   }
 
-  function renderOptionButton(q, opt, index, isMulti) {
-    var letter = String.fromCharCode(65 + index);
-    var btn = button(letter + ". " + (opt.text || ""), "option", function () {
-      if (answered) {
-        return;
+  function renderHome() {
+    view = "home";
+    session = null;
+    clear(app);
+
+    var home = el("div", "home");
+    home.appendChild(el("h1", null, "DM Quiz"));
+    home.appendChild(el("div", "sub", "Ripetizione spaziata — 152 domande verificate"));
+
+    var stats = SR.stats(currentTopic);
+    var line = el("div", "stats");
+    line.appendChild(document.createTextNode("Da ripassare: "));
+    line.appendChild(el("b", null, stats.due));
+    line.appendChild(document.createTextNode(" · Nuove: "));
+    line.appendChild(el("b", null, stats.fresh));
+    line.appendChild(document.createTextNode(" · Fatte oggi: "));
+    line.appendChild(el("b", null, stats.done));
+    home.appendChild(line);
+
+    var chart = el("div", "boxchart");
+    var boxes = SR.boxes(currentTopic);
+    var labels = ["nuove-0", "box 1", "box 2", "box 3+"];
+    var classes = ["bar", "bar b1", "bar b2", "bar b3"];
+    var max = Math.max.apply(null, boxes.concat([1]));
+    boxes.forEach(function (count, i) {
+      var wrap = el("div", "barwrap");
+      var bar = el("div", classes[i] || "bar");
+      var h = count > 0 ? Math.max(4, Math.round((count / max) * 100)) : 4;
+      bar.style.height = h + "%";
+      bar.title = labels[i] + ": " + count;
+      wrap.appendChild(bar);
+      wrap.appendChild(el("i", null, labels[i]));
+      chart.appendChild(wrap);
+    });
+    home.appendChild(chart);
+
+    var select = document.createElement("select");
+    var all = document.createElement("option");
+    all.value = "";
+    all.textContent = "Tutti";
+    select.appendChild(all);
+    uniqueTopics().forEach(function (topic) {
+      var opt = document.createElement("option");
+      opt.value = topic;
+      opt.textContent = topic;
+      select.appendChild(opt);
+    });
+    select.value = currentTopic || "";
+    select.addEventListener("change", function () {
+      currentTopic = select.value || null;
+      renderHome();
+    });
+    home.appendChild(select);
+
+    home.appendChild(button("btn-primary", "▶ Studia", function () {
+      startSession("srs");
+    }));
+    home.appendChild(button("btn", "Ripassa 10 a caso", function () {
+      startSession("random10");
+    }));
+    home.appendChild(button("btn-secondary", "⚙️ Impostazioni", function () {
+      renderSettings();
+    }));
+    home.appendChild(el("div", "footer", "DM Quiz v2"));
+
+    app.appendChild(home);
+  }
+
+  function startSession(mode) {
+    var kind = mode || "srs";
+    var startStats = SR.stats(currentTopic);
+    var queue = kind === "random10" ? SR.randomTen(currentTopic).slice() : [];
+    session = {
+      mode: kind,
+      queue: queue,
+      answered: 0,
+      initial: kind === "random10" ? queue.length : startStats.due + startStats.fresh,
+      remaining: function () {
+        if (this.mode === "random10") return this.queue.length;
+        var s = SR.stats(currentTopic);
+        return s.due + s.fresh;
       }
-
-      if (isMulti) {
-        selected[opt.key] = !selected[opt.key];
-        btn.className = selected[opt.key] ? "option selected" : "option";
-      } else {
-        selected = {};
-        selected[opt.key] = true;
-        submitAnswer(q);
-      }
-    });
-
-    return btn;
+    };
+    nextQuestion();
   }
 
-  function submitAnswer(q) {
-    answered = true;
-
-    var correctMap = {};
-    (q.correct || []).forEach(function (key) {
-      correctMap[key] = true;
-    });
-
-    var selectedKeys = Object.keys(selected).filter(function (key) {
-      return selected[key];
-    });
-
-    var ok =
-      selectedKeys.length === (q.correct || []).length &&
-      selectedKeys.every(function (key) {
-        return correctMap[key];
-      });
-
-    renderAnswered(q, ok);
-  }
-
-  function renderAnswered(q, ok) {
-    var wrap = el("div", "question");
-
-    wrap.appendChild(el("div", "topic", q.topic || ""));
-    wrap.appendChild(el("div", "qtext", q.text || ""));
-
-    var correctMap = {};
-    (q.correct || []).forEach(function (key) {
-      correctMap[key] = true;
-    });
-
-    var optionsWrap = el("div", "options");
-    currentOrder.forEach(function (opt, index) {
-      var letter = String.fromCharCode(65 + index);
-      var className = "option";
-
-      if (correctMap[opt.key]) {
-        className += " correct";
-      } else if (selected[opt.key]) {
-        className += " wrong";
-      }
-
-      var optBtn = el("button", className, letter + ". " + (opt.text || ""));
-      optBtn.type = "button";
-      optBtn.disabled = true;
-      optionsWrap.appendChild(optBtn);
-    });
-
-    wrap.appendChild(optionsWrap);
-    wrap.appendChild(el("div", "verdict", ok ? "✅ Esatto!" : "❌ Riguardala"));
-
-    if (q.note) {
-      wrap.appendChild(el("div", "note", q.note));
-    }
-
-    var grades = el("div", "grade-row");
-    grades.appendChild(gradeButton(q.id, "Di nuovo", "again"));
-    grades.appendChild(gradeButton(q.id, "Difficile", "hard"));
-    grades.appendChild(gradeButton(q.id, "Bene", "good"));
-    grades.appendChild(gradeButton(q.id, "Facile", "easy"));
-    wrap.appendChild(grades);
-
-    renderShell(wrap);
-  }
-
-  function gradeButton(id, label, grade) {
-    return button(label, "btn", function () {
-      if (window.SR && typeof window.SR.grade === "function") {
-        window.SR.grade(id, grade);
-      }
-      showNextAfterGrade();
-    });
-  }
-
-  function showNextAfterGrade() {
+  function nextQuestion() {
     var id = null;
+    if (session.mode === "random10") id = session.queue.shift() || null;
+    else id = SR.next(currentTopic);
 
-    if (fallbackQueue.length) {
-      id = fallbackQueue.shift();
-    } else if (window.SR && typeof window.SR.next === "function") {
-      id = window.SR.next(UI.topicFilter === "All" ? null : UI.topicFilter);
-    }
-
-    if (id === null || id === undefined) {
-      renderHome();
+    if (!id || !byId[id]) {
+      renderEmpty();
       return;
     }
 
-    var q = findQuestion(id);
-    if (!q) {
-      renderHome();
-      return;
-    }
-
-    renderQuestion(q);
+    var q = byId[id];
+    current = {
+      id: id,
+      q: q,
+      options: shuffle(q.options || []),
+      selected: {},
+      submitted: false,
+      correct: false
+    };
+    renderQuestion();
   }
+
+  function renderQuestion() {
+    view = "question";
+    clear(app);
+
+    var root = el("div", "quiz");
+    renderHeader(root);
+
+    var q = current.q;
+    var card = el("div", "qcard");
+    card.appendChild(el("div", "topic", q.topic || ""));
+    card.appendChild(el("div", "qtext", q.text || ""));
+
+    if ((q.correct || []).length > 1) {
+      card.appendChild(el("div", "multinote", "Seleziona TUTTE le risposte corrette"));
+    }
+
+    var opts = el("div", "options");
+    current.options.forEach(function (opt, index) {
+      var ob = button("option", null, function () {
+        chooseOption(index);
+      });
+      ob.setAttribute("data-index", String(index));
+      ob.setAttribute("data-key", opt.key);
+
+      if (current.selected[opt.key]) ob.classList.add("selected");
+      if (current.submitted) {
+        if ((q.correct || []).indexOf(opt.key) !== -1) ob.classList.add("correct");
+        if (current.selected[opt.key] && (q.correct || []).indexOf(opt.key) === -1) ob.classList.add("wrong");
+      }
+
+      ob.appendChild(el("span", "letter", String.fromCharCode(65 + index)));
+      ob.appendChild(el("span", null, opt.text || ""));
+      opts.appendChild(ob);
+    });
+    card.appendChild(opts);
+
+    if (!current.submitted && (q.correct || []).length > 1) {
+      card.appendChild(button("btn-primary", "Conferma", submitAnswer));
+    }
+
+    if (current.submitted) {
+      var verdict = el("div", "verdict " + (current.correct ? "ok" : "ko"), current.correct ? "✅ Esatto!" : "❌ Riguardala");
+      card.appendChild(verdict);
+
+      if (q.note) card.appendChild(el("div", "note", q.note));
+
+      var preview = SR.preview(current.id);
+      var grades = el("div", "grade-row");
+      [
+        ["again", "g-again", "Di nuovo", preview.again],
+        ["hard", "g-hard", "Difficile", preview.hard],
+        ["good", "g-good", "Bene", preview.good],
+        ["easy", "g-easy", "Facile", preview.easy]
+      ].forEach(function (g) {
+        var gb = button("btn " + g[1], null, function () {
+          grade(g[0]);
+        });
+        gb.appendChild(document.createTextNode(g[2]));
+        gb.appendChild(el("small", null, g[3]));
+        grades.appendChild(gb);
+      });
+      card.appendChild(grades);
+
+      var hint = el("div", "kbd-hint");
+      hint.appendChild(document.createTextNode("Tasti: "));
+      hint.appendChild(el("kbd", null, "1-9"));
+      hint.appendChild(document.createTextNode(" opzioni · "));
+      hint.appendChild(el("kbd", null, "Invio"));
+      hint.appendChild(document.createTextNode(" conferma · "));
+      hint.appendChild(el("kbd", null, "1-4"));
+      hint.appendChild(document.createTextNode(" voto dopo la risposta"));
+      card.appendChild(hint);
+    }
+
+    root.appendChild(card);
+    app.appendChild(root);
+  }
+
+  function chooseOption(index) {
+    if (!current || current.submitted) return;
+    var opt = current.options[index];
+    if (!opt) return;
+
+    if ((current.q.correct || []).length === 1) {
+      current.selected = {};
+      current.selected[opt.key] = true;
+      submitAnswer();
+      return;
+    }
+
+    if (current.selected[opt.key]) delete current.selected[opt.key];
+    else current.selected[opt.key] = true;
+    renderQuestion();
+  }
+
+  function submitAnswer() {
+    if (!current || current.submitted) return;
+    var selected = Object.keys(current.selected);
+    var correct = (current.q.correct || []).slice();
+    current.correct = sameSet(selected, correct);
+    current.submitted = true;
+    renderQuestion();
+  }
+
+  function grade(g) {
+    if (!current || !current.submitted) return;
+    var id = current.id;
+    var human = SR.grade(id, g);
+    session.answered += 1;
+
+    if (g === "again") {
+      if (session.mode === "random10") session.queue.push(id);
+      toast("↩ rimessa in coda");
+    } else {
+      toast("↻ tornerà tra " + human);
+    }
+
+    nextQuestion();
+  }
+
+  function renderEmpty() {
+    view = "empty";
+    clear(app);
+
+    var root = el("div", "quiz");
+    renderHeader(root);
+
+    var card = el("div", "qcard");
+    card.appendChild(el("h2", null, "🎉 Niente da ripassare ora"));
+
+    var s = SR.stats(currentTopic);
+    var info = el("div", "stats");
+    info.appendChild(document.createTextNode("Da ripassare: "));
+    info.appendChild(el("b", null, s.due));
+    info.appendChild(document.createTextNode(" · Nuove: "));
+    info.appendChild(el("b", null, s.fresh));
+    info.appendChild(document.createTextNode(" · Totale: "));
+    info.appendChild(el("b", null, s.total));
+    card.appendChild(info);
+
+    card.appendChild(button("btn", "Ripassa 10 a caso", function () {
+      startSession("random10");
+    }));
+    card.appendChild(button("btn", "🏠 Home", function () {
+      renderHome();
+    }));
+
+    root.appendChild(card);
+    app.appendChild(root);
+  }
+
+  function renderSettings() {
+    view = "settings";
+    clear(app);
+
+    var root = el("div", "settings");
+    renderHeader(root);
+    root.appendChild(el("h2", null, "Impostazioni ripetizione"));
+
+    var values = SR.settings();
+    [
+      ["hardMin", "Difficile (minuti)", "Tempo minimo prima di rivedere una risposta difficile", 1],
+      ["goodFirstH", "Bene — primo passaggio (ore)", "Intervallo dopo il primo passaggio corretto", 1],
+      ["goodNextD", "Bene — passaggi successivi (giorni)", "Intervallo dopo i passaggi successivi", 1],
+      ["easyD", "Facile (giorni)", "Intervallo per una risposta facile", 1]
+    ].forEach(function (field) {
+      var row = el("div", "field");
+      var label = el("label");
+      label.appendChild(document.createTextNode(field[1]));
+      label.appendChild(el("small", null, field[2]));
+      row.appendChild(label);
+
+      var input = document.createElement("input");
+      input.type = "number";
+      input.min = String(field[3]);
+      input.value = values[field[0]];
+      input.addEventListener("change", function () {
+        var next = SR.settings();
+        next[field[0]] = Math.max(field[3], parseInt(input.value, 10) || field[3]);
+        SR.setSettings(next);
+        renderSettings();
+      });
+      row.appendChild(input);
+      root.appendChild(row);
+    });
+
+    root.appendChild(button("btn", "Ripristina default", function () {
+      SR.resetSettings();
+      toast("Impostazioni ripristinate");
+      renderSettings();
+    }));
+
+    root.appendChild(button("btn", "📤 Esporta progressi", exportProgress));
+
+    var importInput = document.createElement("input");
+    importInput.type = "file";
+    importInput.accept = "application/json,.json";
+    importInput.style.display = "none";
+    importInput.addEventListener("change", function () {
+      var file = importInput.files && importInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          SR.importState(String(reader.result || ""));
+          toast("Importato ✅");
+          renderSettings();
+        } catch (e) {
+          toast("File non valido");
+        }
+      };
+      reader.readAsText(file);
+    });
+    root.appendChild(importInput);
+
+    root.appendChild(button("btn", "📥 Importa progressi", function () {
+      importInput.value = "";
+      importInput.click();
+    }));
+
+    root.appendChild(button("btn danger", "🗑 Azzera progressi", function () {
+      if (window.confirm("Azzera tutti i progressi?")) {
+        SR._reset();
+        toast("Progressi azzerati");
+        renderSettings();
+      }
+    }));
+
+    app.appendChild(root);
+  }
+
+  function exportProgress() {
+    var blob = new Blob([SR.exportState()], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "dmquiz-backup.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 0);
+  }
+
+  function toast(msg) {
+    var t = document.querySelector(".toast");
+    if (!t) {
+      t = el("div", "toast");
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      t.classList.remove("show");
+    }, 1800);
+  }
+
+  function installKeyboard() {
+    if (keyListenerReady) return;
+    keyListenerReady = true;
+
+    document.addEventListener("keydown", function (e) {
+      var tag = e.target && e.target.tagName;
+      if (view === "settings") return;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (!current || view !== "question") return;
+
+      if (!current.submitted) {
+        if (/^[1-9]$/.test(e.key)) {
+          var idx = parseInt(e.key, 10) - 1;
+          if (idx < current.options.length) {
+            e.preventDefault();
+            chooseOption(idx);
+          }
+        } else if (e.key === "Enter" && (current.q.correct || []).length > 1) {
+          e.preventDefault();
+          submitAnswer();
+        }
+      } else {
+        var map = { "1": "again", "2": "hard", "3": "good", "4": "easy" };
+        if (map[e.key]) {
+          e.preventDefault();
+          grade(map[e.key]);
+        }
+      }
+    });
+  }
+
+  window.UI = {
+    start: start,
+    topicFilter: topicFilter
+  };
+
+  start();
 })();
 </script>
 <script>
