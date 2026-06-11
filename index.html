@@ -198,6 +198,43 @@ select { background: var(--card); color: var(--text); border: 1px solid var(--bo
 @media (max-width: 380px) {
   .grade-row { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ===== iOS/Safari hardening & breathing room ===== */
+.btn, .option, select, .settings input[type="number"] {
+  -webkit-appearance: none; appearance: none;
+}
+.btn, .option { min-height: 48px; }
+input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
+
+/* spacing fallback that does not rely on flex gap */
+.home > * + * { margin-top: 14px; }
+.settings > * + * { margin-top: 12px; }
+.header { padding-top: max(12px, env(safe-area-inset-top)); }
+#app { padding-left: max(14px, env(safe-area-inset-left));
+       padding-right: max(14px, env(safe-area-inset-right)); }
+
+/* boxchart: visible tracks, labels with room of their own */
+.boxchart { height: 72px; margin: 10px 0 30px; }
+.boxchart .bar { width: 52px; background: var(--card2); }
+.boxchart .bar > i { bottom: -22px; }
+
+/* a bit more air between blocks */
+.qcard { margin-bottom: 18px; }
+.option { margin-bottom: 12px; }
+.grade-row { margin-top: 16px; gap: 10px; }
+.home { gap: 14px; }
+
+/* ===== button classes must be self-sufficient (UI uses them standalone) ===== */
+.btn-primary, .btn-secondary {
+  display: block; width: 100%; min-height: 48px;
+  padding: 14px 18px; border-radius: var(--radius);
+  font-size: 1.05rem; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  transition: transform 0.12s, filter 0.15s;
+}
+.btn-secondary { background: transparent; color: var(--muted);
+  border: 1px solid var(--border); }
+.btn-primary:active, .btn-secondary:active { transform: scale(0.985); }
 </style>
 </head>
 <body>
