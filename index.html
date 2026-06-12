@@ -278,7 +278,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
   var SKEY = "dmquiz_settings_v1";
   var MIN = 60 * 1000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   var DEFAULTS = { hardMin: 10, goodFirstH: 4, goodNextD: 1, easyD: 1,
-                   batchSize: 10, examDate: "2026-06-15T14:00" };
+                   batchSize: 10, cueAfter: 5, examDate: "2026-06-15T14:00" };
 
   function loadJSON(k, fallback) {
     try { return JSON.parse(localStorage.getItem(k)) || fallback; }
@@ -384,7 +384,8 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
       var grade, verdict;
       // learning-phase bookkeeping: consecutive-correct streak + last mistake
       var card = state[id] || { box: 0, seen: 0, lapses: 0 };
-      if (exact) { card.streak = (card.streak || 0) + 1; }
+      if (card.ok === undefined) card.ok = card.streak || 0;  // migration v3.6
+      if (exact) { card.streak = (card.streak || 0) + 1; card.ok += 1; }
       else {
         card.streak = 0;
         if (sig.wrongTexts && sig.wrongTexts.length) {
@@ -432,7 +433,10 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     },
     learning: function (id) {
       var c = state[id];
-      return !c || (c.streak || 0) < 2;   // hint shown until 2 consecutive correct
+      var threshold = Math.max(1, Math.round(settings.cueAfter || 5));
+      if (!c) return true;
+      var ok = c.ok !== undefined ? c.ok : (c.streak || 0);
+      return ok < threshold;   // aids shown until N total correct answers
     },
     lastWrong: function (id) {
       var c = state[id];
@@ -462,7 +466,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     },
     settings: function () { return Object.assign({}, settings); },
     setSettings: function (s) {
-      ["hardMin", "goodFirstH", "goodNextD", "easyD", "batchSize"].forEach(function (k) {
+      ["hardMin", "goodFirstH", "goodNextD", "easyD", "batchSize", "cueAfter"].forEach(function (k) {
         var v = parseFloat(s[k]);
         if (!isNaN(v) && v > 0) settings[k] = v;
       });
@@ -716,7 +720,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     home.appendChild(button("btn-secondary", "⚙️ Impostazioni", function () {
       renderSettings();
     }));
-    home.appendChild(el("div", "footer", "DM Quiz v3.4"));
+    home.appendChild(el("div", "footer", "DM Quiz v3.6"));
 
     app.appendChild(home);
   }
@@ -772,36 +776,24 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     renderHeader(root);
 
     var q = current.q;
-    var inLearning = SR.learning ? SR.learning(current.id) : true;
     var card = el("div", "qcard");
     card.appendChild(el("div", "topic", q.topic || ""));
     card.appendChild(el("div", "qtext", q.text || ""));
+
+    var inLearning = SR.learning ? SR.learning(current.id) : true;
     if (inLearning && q.it_q) {
       card.appendChild(el("div", "qtrans", q.it_q));
     }
-
     if ((q.correct || []).length > 1 && inLearning) {
       card.appendChild(el("div", "multinote", "Seleziona TUTTE le risposte corrette"));
     }
-
-    if (q.hint && inLearning && !current.submitted) {
+    if (q.cue && inLearning && !current.submitted) {
       var hb = el("div", "hintbox");
-      if (q.cue) {
-        var cueRow = el("div", "cue-row");
-        cueRow.appendChild(document.createTextNode(q.cue));
-        hb.appendChild(cueRow);
-      }
-      hb.appendChild(el("b", null, "💡 Ancora "));
-      hb.appendChild(el("small", null, "(sparisce dopo 2 risposte giuste di fila) "));
-      hb.appendChild(document.createTextNode(q.hint));
-      var lw = SR.lastWrong ? SR.lastWrong(current.id) : null;
-      if (lw && lw.length) {
-        var warn = el("div", null);
-        warn.style.marginTop = "6px";
-        warn.appendChild(el("b", null, "⚠️ La volta scorsa avevi scelto: "));
-        warn.appendChild(document.createTextNode("«" + lw.join("» · «") + "» — no."));
-        hb.appendChild(warn);
-      }
+      var cueRow = el("div", "cue-row");
+      cueRow.appendChild(document.createTextNode(q.cue));
+      hb.appendChild(cueRow);
+      var thr = (SR.settings && SR.settings().cueAfter) || 5;
+      hb.appendChild(el("small", null, "(sparisce dopo " + thr + " risposte giuste)"));
       card.appendChild(hb);
     }
 
@@ -823,7 +815,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
       var txt = el("span", "opt-texts");
       txt.appendChild(el("span", null, opt.text || ""));
       if (inLearning && opt.it) txt.appendChild(el("span", "opt-tr", opt.it));
-      if (current.submitted && inLearning && opt.why) {
+      if (current.submitted && opt.why) {
         var isOk = (q.correct || []).indexOf(opt.key) !== -1;
         txt.appendChild(el("span", "opt-why " + (isOk ? "w-ok" : "w-no"),
           (isOk ? "✔ " : "✘ ") + String(opt.why).replace(/^(sì|si|no):\s*/i, "")));
@@ -983,7 +975,8 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
       ["goodFirstH", "Bene — primo passaggio (ore)", "Intervallo dopo il primo passaggio corretto", 1],
       ["goodNextD", "Bene — passaggi successivi (giorni)", "Intervallo dopo i passaggi successivi", 1],
       ["easyD", "Facile (giorni)", "Intervallo per una risposta facile", 1],
-      ["batchSize", "Domande per gruppo extra", "Quante domande per ogni 'Continua' a coda vuota", 1]
+      ["batchSize", "Domande per gruppo extra", "Quante domande per ogni 'Continua' a coda vuota", 1],
+      ["cueAfter", "Giuste per nascondere il suggerimento 🔮", "Dopo quante risposte esatte (totali) spariscono cue, traduzioni e nota multi-risposta", 1]
     ].forEach(function (field) {
       var row = el("div", "field");
       var label = el("label");
