@@ -255,6 +255,26 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
   margin-top: 2px; }
 .option .opt-why.w-ok { color: var(--green); }
 .option .opt-why.w-no { color: #f87171; }
+
+/* ===== v3.8: personal cue editor ===== */
+.cue-pen { background: transparent; border: none; cursor: pointer; padding: 0 4px;
+  margin-left: 6px; font-size: 0.82rem; color: var(--muted); vertical-align: baseline;
+  -webkit-appearance: none; appearance: none; }
+.cue-pen:active { transform: scale(0.95); }
+.cue-own { color: var(--accent); font-size: 0.78rem; font-weight: 700; }
+.cue-after { background: rgba(245, 158, 11, 0.07); border: 1px dashed rgba(245, 158, 11, 0.35);
+  border-radius: 10px; padding: 8px 12px; margin: 10px 0 4px;
+  font-size: 0.85rem; line-height: 1.45; color: #fbd38d; }
+.cue-after .cue-row { font-weight: 600; color: #fde68a; }
+.cue-edit { display: flex; flex-direction: column; }
+.cue-ta { width: 100%; box-sizing: border-box; background: var(--card2);
+  color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font: inherit; font-size: 16px; line-height: 1.4;
+  resize: vertical; min-height: 64px; -webkit-appearance: none; appearance: none; }
+.cue-tools { display: flex; flex-wrap: wrap; margin-top: 6px; }
+.cue-tools .btn-secondary { width: auto; padding: 7px 12px; font-size: 0.82rem;
+  margin: 4px 8px 0 0; }
+.cue-tools .cue-save { color: #fde68a; border-color: rgba(245, 158, 11, 0.55); }
 </style>
 </head>
 <body>
@@ -276,6 +296,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
   "use strict";
   var KEY = "dmquiz_sr_v1";
   var SKEY = "dmquiz_settings_v1";
+  var CKEY = "dmquiz_cues_v1";
   var MIN = 60 * 1000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   var DEFAULTS = { hardMin: 10, goodFirstH: 4, goodNextD: 1, easyD: 1,
                    batchSize: 10, cueAfter: 5, examDate: "2026-06-15T14:00" };
@@ -290,6 +311,8 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
 
   var state = loadJSON(KEY, {});
   var settings = Object.assign({}, DEFAULTS, loadJSON(SKEY, {}));
+  var cues = loadJSON(CKEY, {});
+  function saveCues() { localStorage.setItem(CKEY, JSON.stringify(cues)); }
   if (!state._meta) state._meta = { day: today(), done: 0 };
   if (state._meta.day !== today()) state._meta = { day: today(), done: 0 };
 
@@ -442,6 +465,17 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
       var c = state[id];
       return (c && c.lastWrong) || null;
     },
+    /* personal cue: overrides the generated q.cue when set */
+    customCue: function (id) {
+      var t = cues[id];
+      return (typeof t === "string" && t.trim()) ? t : null;
+    },
+    setCustomCue: function (id, text) {
+      if (typeof text === "string" && text.trim()) cues[id] = text.trim();
+      else delete cues[id];
+      saveCues();
+      return SR.customCue(id);
+    },
     seenCount: function (id) {
       var c = state[id];
       return c ? (c.seen || 0) : 0;
@@ -481,7 +515,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     },
     exportState: function () {
       return JSON.stringify({ v: 3, exported: new Date().toISOString(),
-                              state: state, settings: settings });
+                              state: state, settings: settings, cues: cues });
     },
     importState: function (json) {
       var data = JSON.parse(json);
@@ -490,6 +524,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
       if (!state._meta) state._meta = { day: today(), done: 0 };
       save(state);
       if (data.settings) SR.setSettings(data.settings);
+      if (data.cues && typeof data.cues === "object") { cues = data.cues; saveCues(); }
       return true;
     },
     preview: function (id) {
@@ -720,7 +755,7 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     home.appendChild(button("btn-secondary", "⚙️ Impostazioni", function () {
       renderSettings();
     }));
-    home.appendChild(el("div", "footer", "DM Quiz v3.7"));
+    home.appendChild(el("div", "footer", "DM Quiz v3.8"));
 
     app.appendChild(home);
   }
@@ -787,13 +822,61 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
     if ((q.correct || []).length > 1 && inLearning) {
       card.appendChild(el("div", "multinote", "Seleziona TUTTE le risposte corrette"));
     }
-    if (q.cue && inLearning && !current.submitted) {
+    var customCue = SR.customCue ? SR.customCue(current.id) : null;
+    var cueText = customCue || q.cue;
+
+    function cueEditor() {
+      var box = el("div", "cue-edit");
+      var ta = document.createElement("textarea");
+      ta.className = "cue-ta";
+      ta.rows = 3;
+      ta.value = customCue || q.cue || "";
+      ta.placeholder = "La tua associazione personale…";
+      box.appendChild(ta);
+      var tools = el("div", "cue-tools");
+      tools.appendChild(button("btn-secondary cue-save", "Salva", function () {
+        SR.setCustomCue(current.id, ta.value);
+        current.editingCue = false;
+        renderQuestion();
+      }));
+      if (customCue) {
+        tools.appendChild(button("btn-secondary", "Ripristina default", function () {
+          SR.setCustomCue(current.id, null);
+          current.editingCue = false;
+          renderQuestion();
+        }));
+      }
+      tools.appendChild(button("btn-secondary", "Annulla", function () {
+        current.editingCue = false;
+        renderQuestion();
+      }));
+      box.appendChild(tools);
+      setTimeout(function () { ta.focus(); }, 0);
+      return box;
+    }
+
+    function cueRowWithPen(penLabel) {
+      var row = el("div", "cue-row");
+      row.appendChild(document.createTextNode(cueText || ""));
+      if (customCue) row.appendChild(el("span", "cue-own", " (tuo)"));
+      var pen = button("cue-pen", penLabel, function () {
+        current.editingCue = true;
+        renderQuestion();
+      });
+      pen.title = "Personalizza il suggerimento";
+      row.appendChild(pen);
+      return row;
+    }
+
+    if (cueText && inLearning && !current.submitted) {
       var hb = el("div", "hintbox");
-      var cueRow = el("div", "cue-row");
-      cueRow.appendChild(document.createTextNode(q.cue));
-      hb.appendChild(cueRow);
-      var thr = (SR.settings && SR.settings().cueAfter) || 5;
-      hb.appendChild(el("small", null, "(sparisce dopo " + thr + " risposte giuste)"));
+      if (current.editingCue) {
+        hb.appendChild(cueEditor());
+      } else {
+        hb.appendChild(cueRowWithPen("✏️"));
+        var thr = (SR.settings && SR.settings().cueAfter) || 5;
+        hb.appendChild(el("small", null, "(sparisce dopo " + thr + " risposte giuste)"));
+      }
       card.appendChild(hb);
     }
 
@@ -841,6 +924,12 @@ input, select, textarea { font-size: 16px; }   /* stop iOS focus zoom */
       card.appendChild(el("div", "note", res.grade === "again"
         ? "↩ Torna subito in coda"
         : "↻ La rivedrai tra " + res.human));
+
+      // personal cue: always editable after answering (even on mature cards)
+      var ca = el("div", "cue-after");
+      if (current.editingCue) ca.appendChild(cueEditor());
+      else ca.appendChild(cueRowWithPen("✏️ Personalizza"));
+      card.appendChild(ca);
 
       card.appendChild(button("btn-primary", "Avanti →", advance));
 
